@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,13 @@
  */
 package org.b3log.solo.util;
 
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.b3log.latke.Keys;
+import org.b3log.latke.model.Role;
 import org.b3log.latke.model.User;
 import org.b3log.latke.repository.Query;
 import org.b3log.latke.repository.RepositoryException;
@@ -38,11 +40,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+
 /**
  * User utilities.
  *
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @version 1.0.1.3, Feb 7, 2012
+ * @author <a href="mailto:385321165@qq.com">DASHU</a>
+ * @version 1.0.1.5, Apr 1, 2013
  * @since 0.3.1
  */
 public final class Users {
@@ -51,14 +55,17 @@ public final class Users {
      * Logger.
      */
     private static final Logger LOGGER = Logger.getLogger(Users.class.getName());
+
     /**
      * User repository.
      */
     private UserRepository userRepository = UserRepositoryImpl.getInstance();
+
     /**
      * User service.
      */
     private UserService userService = UserServiceFactory.getUserService();
+
     /**
      * Article repository.
      */
@@ -74,8 +81,7 @@ public final class Users {
         final Query query = new Query().setPageCount(1);
 
         try {
-            final JSONArray users = userRepository.get(query).
-                    getJSONArray(Keys.RESULTS);
+            final JSONArray users = userRepository.get(query).getJSONArray(Keys.RESULTS);
 
             return 1 != users.length();
         } catch (final RepositoryException e) {
@@ -99,7 +105,7 @@ public final class Users {
      * @throws Exception exception
      */
     public boolean canAccessArticle(final String articleId, final HttpServletRequest request)
-            throws Exception {
+        throws Exception {
         if (Strings.isEmptyOrNull(articleId)) {
             return false;
         }
@@ -135,6 +141,7 @@ public final class Users {
         LoginProcessor.tryLogInWithCookie(request, response);
 
         final GeneralUser currentUser = userService.getCurrentUser(request);
+
         if (null == currentUser) {
             return false;
         }
@@ -161,6 +168,7 @@ public final class Users {
      */
     public JSONObject getCurrentUser(final HttpServletRequest request) {
         final GeneralUser currentUser = userService.getCurrentUser(request);
+
         if (null == currentUser) {
             return null;
         }
@@ -198,6 +206,10 @@ public final class Users {
 
     /**
      * Determines whether the specified email exits in the specified users.
+     * 
+     * <p>
+     * If the email is a visitor's, returns {@code false}.
+     * </p>
      *
      * @param email the specified email
      * @param users the specified user
@@ -207,11 +219,30 @@ public final class Users {
     private boolean existEmail(final String email, final JSONArray users) throws JSONException {
         for (int i = 0; i < users.length(); i++) {
             final JSONObject user = users.getJSONObject(i);
+
+            if (isVisitor(user)) {
+                return false;
+            }
+
             if (user.getString(User.USER_EMAIL).equalsIgnoreCase(email)) {
                 return true;
             }
         }
 
+        return false;
+    }
+
+    /**
+     * Check the user is visitor or not.
+     *
+     * @param user the specified user
+     * @return {@code true} if is visitor, {@code false} otherwise
+     * @throws JSONException json exception
+     */
+    private boolean isVisitor(final JSONObject user) throws JSONException {
+        if (user.getString(User.USER_ROLE).equals(Role.VISITOR_ROLE)) {
+            return true;
+        }
         return false;
     }
 
@@ -227,8 +258,7 @@ public final class Users {
     /**
      * Private default constructor.
      */
-    private Users() {
-    }
+    private Users() {}
 
     /**
      * Singleton holder.
@@ -246,7 +276,6 @@ public final class Users {
         /**
          * Private default constructor.
          */
-        private SingletonHolder() {
-        }
+        private SingletonHolder() {}
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package org.b3log.solo.util;
 
 import java.io.FileInputStream;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.b3log.latke.util.Stopwatchs;
@@ -28,7 +29,7 @@ import org.testng.Assert;
  * {@link org.b3log.solo.util.Markdowns} test case.
  *
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @version 1.0.0.0, Apr 28, 2012
+ * @version 1.0.0.2, May 16, 2013
  * @since 0.4.5
  */
 public final class MarkdownsTestCase {
@@ -52,11 +53,12 @@ public final class MarkdownsTestCase {
 
         System.out.println(MarkdownsTestCase.class.getResource("/"));
         final URL testFile = MarkdownsTestCase.class.getResource("/markdown_syntax.text");
-        System.out.println(testFile.getFile());
+        final String path = URLDecoder.decode(testFile.getPath(), "UTF-8");
+        System.out.println(path);
 
         final StringBuilder markdownTextBuilder = new StringBuilder();
         @SuppressWarnings("unchecked")
-        final List<String> lines = IOUtils.readLines(new FileInputStream(testFile.getFile()));
+        final List<String> lines = IOUtils.readLines(new FileInputStream(path));
         
         for (final String line : lines) {
             markdownTextBuilder.append(line).append(Strings.LINE_SEPARATOR);
@@ -73,5 +75,11 @@ public final class MarkdownsTestCase {
         
         System.out.println("Stopwatch: ");
         System.out.println(Stopwatchs.getTimingStat());
+        
+        // HTML entity test
+        markdownText = "The first: &#39; <br/> The second: &AElig;";
+        html = Markdowns.toHTML(markdownText);
+        
+        System.out.println(html);
     }
 }

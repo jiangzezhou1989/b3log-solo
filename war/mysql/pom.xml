@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
     Description: B3log Solo (MySQL) standard Servlet container POM.
-    Version: 1.0.0.2, May 11, 2012
+    Version: 1.0.1.2, Jan 4, 2013
     Author: Liang Ding
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -19,14 +19,36 @@
     <parent>
         <groupId>org.b3log</groupId>
         <artifactId>solo-war</artifactId>
-        <version>0.4.5</version>
+        <version>0.6.0</version>
     </parent>
     
     <properties>
+        <!-- JDBC Drivers -->
+        <mysql-connector-java.version>5.1.18</mysql-connector-java.version>
         <netbeans.hint.deploy.server>Tomcat</netbeans.hint.deploy.server>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.b3log</groupId>
+            <artifactId>latke</artifactId>
+            
+            <exclusions>
+                <!-- H2 database for local -->
+                <exclusion>
+                    <groupId>com.h2database</groupId>
+                    <artifactId>h2</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <version>2.5</version>
+            <scope>provided</scope>
+        </dependency>
+        
         <dependency>
             <groupId>org.b3log</groupId>
             <artifactId>solo-core</artifactId>
@@ -35,6 +57,12 @@
         <dependency>
             <groupId>org.b3log</groupId>
             <artifactId>latke-repository-mysql</artifactId>
+        </dependency>
+        
+        <dependency>         
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>${mysql-connector-java.version}</version>
         </dependency>
     </dependencies>
     
@@ -56,14 +84,28 @@
                     <header>../../src/main/resources/etc/header.txt</header>
                 </configuration>
             </plugin>
-
+            
             <plugin>
-                <groupId>org.b3log.latke</groupId>
-                <artifactId>maven-min-plugin</artifactId>
-                <configuration>
-                    <cssSourceDir>${basedir}/../src/main/webapp/css</cssSourceDir>
-                    <jsSourceDir>${basedir}/../src/main/webapp/js</jsSourceDir>
-                </configuration>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>2.6</version>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/target/${project.build.finalName}/WEB-INF/classes</outputDirectory>
+                            <resources>          
+                                <resource>
+                                    <directory>src/main/resources</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>              
+                        </configuration>            
+                    </execution>
+                </executions>
             </plugin>
             
         </plugins>

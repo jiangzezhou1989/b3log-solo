@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,30 +15,30 @@
  */
 package org.b3log.solo.processor;
 
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import org.b3log.latke.mail.MailService;
-import org.b3log.latke.mail.MailServiceFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.b3log.latke.Keys;
 import org.b3log.latke.Latkes;
-import org.b3log.latke.annotation.RequestProcessing;
-import org.b3log.latke.annotation.RequestProcessor;
 import org.b3log.latke.cache.PageCaches;
+import org.b3log.latke.mail.MailService;
 import org.b3log.latke.mail.MailService.Message;
+import org.b3log.latke.mail.MailServiceFactory;
 import org.b3log.latke.repository.*;
 import org.b3log.latke.servlet.HTTPRequestContext;
 import org.b3log.latke.servlet.HTTPRequestMethod;
+import org.b3log.latke.servlet.annotation.RequestProcessing;
+import org.b3log.latke.servlet.annotation.RequestProcessor;
 import org.b3log.latke.servlet.renderer.TextHTMLRenderer;
 import org.b3log.latke.util.CollectionUtils;
 import org.b3log.solo.model.*;
 import org.b3log.solo.repository.ArticleRepository;
-import org.b3log.solo.repository.StatisticRepository;
 import org.b3log.solo.repository.TagArticleRepository;
 import org.b3log.solo.repository.TagRepository;
 import org.b3log.solo.repository.impl.ArchiveDateArticleRepositoryImpl;
@@ -47,6 +47,7 @@ import org.b3log.solo.repository.impl.ArticleRepositoryImpl;
 import org.b3log.solo.repository.impl.CommentRepositoryImpl;
 import org.b3log.solo.repository.impl.LinkRepositoryImpl;
 import org.b3log.solo.repository.impl.PageRepositoryImpl;
+import org.b3log.solo.repository.impl.PluginRepositoryImpl;
 import org.b3log.solo.repository.impl.PreferenceRepositoryImpl;
 import org.b3log.solo.repository.impl.StatisticRepositoryImpl;
 import org.b3log.solo.repository.impl.TagArticleRepositoryImpl;
@@ -54,8 +55,11 @@ import org.b3log.solo.repository.impl.TagRepositoryImpl;
 import org.b3log.solo.repository.impl.UserRepositoryImpl;
 import org.b3log.solo.service.PreferenceMgmtService;
 import org.b3log.solo.service.PreferenceQueryService;
+import org.b3log.solo.service.StatisticMgmtService;
+import org.b3log.solo.service.StatisticQueryService;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 
 /**
  * Provides patches on some special issues.
@@ -63,7 +67,7 @@ import org.json.JSONObject;
  * <p>See AuthFilter filter configurations in web.xml for authentication.</p>
  *
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @version 1.1.0.6, May 1, 2012
+ * @version 1.1.0.8, Dec 25, 2012
  * @since 0.3.1
  */
 @RequestProcessor
@@ -73,30 +77,41 @@ public final class RepairProcessor {
      * Logger.
      */
     private static final Logger LOGGER = Logger.getLogger(RepairProcessor.class.getName());
+
     /**
      * Preference query service.
      */
     private PreferenceQueryService preferenceQueryService = PreferenceQueryService.getInstance();
+
     /**
      * Mail service.
      */
     private static final MailService MAIL_SVC = MailServiceFactory.getMailService();
+
     /**
      * Tag repository.
      */
     private TagRepository tagRepository = TagRepositoryImpl.getInstance();
+
     /**
      * Tag-Article repository.
      */
     private TagArticleRepository tagArticleRepository = TagArticleRepositoryImpl.getInstance();
+
     /**
      * Article repository.
      */
     private ArticleRepository articleRepository = ArticleRepositoryImpl.getInstance();
+
     /**
-     * Statistic repository.
+     * Statistic query service.
      */
-    private StatisticRepository statisticRepository = StatisticRepositoryImpl.getInstance();
+    private StatisticQueryService statisticQueryService = StatisticQueryService.getInstance();
+
+    /**
+     * Statistic management service.
+     */
+    private StatisticMgmtService statisticMgmtService = StatisticMgmtService.getInstance();
 
     /**
      * Removes unused properties of each article.
@@ -108,19 +123,23 @@ public final class RepairProcessor {
         LOGGER.log(Level.INFO, "Processes remove unused article properties");
 
         final TextHTMLRenderer renderer = new TextHTMLRenderer();
+
         context.setRenderer(renderer);
 
         Transaction transaction = null;
+
         try {
             final JSONArray articles = articleRepository.get(new Query()).getJSONArray(Keys.RESULTS);
+
             if (articles.length() <= 0) {
                 renderer.setContent("No unused article properties");
                 return;
             }
 
-            transaction = statisticRepository.beginTransaction();
+            transaction = articleRepository.beginTransaction();
 
             final Set<String> keyNames = Repositories.getKeyNames(Article.ARTICLE);
+
             for (int i = 0; i < articles.length(); i++) {
                 final JSONObject article = articles.getJSONObject(i);
 
@@ -134,7 +153,7 @@ public final class RepairProcessor {
 
                     articleRepository.update(article.getString(Keys.OBJECT_ID), article);
                     LOGGER.log(Level.INFO, "Found an article[id={0}] exists unused properties[{1}]",
-                               new Object[]{article.getString(Keys.OBJECT_ID), nameSet});
+                        new Object[] {article.getString(Keys.OBJECT_ID), nameSet});
                 }
             }
 
@@ -166,20 +185,15 @@ public final class RepairProcessor {
     @RequestProcessing(value = "/fix/restore-stat.do", method = HTTPRequestMethod.GET)
     public void restoreStat(final HTTPRequestContext context) {
         final TextHTMLRenderer renderer = new TextHTMLRenderer();
+
         context.setRenderer(renderer);
 
-        Transaction transaction = null;
         try {
             PageCaches.removeAll(); // Clears all first
 
-            final JSONObject statistic = statisticRepository.get(Statistic.STATISTIC);
-            if (null == statistic) {
-                LOGGER.log(Level.WARNING, "Statistic is null");
-                return;
-            }
+            final JSONObject statistic = statisticQueryService.getStatistic();
 
-            if (statistic.has(Statistic.STATISTIC_BLOG_COMMENT_COUNT)
-                && statistic.has(Statistic.STATISTIC_BLOG_ARTICLE_COUNT)) {
+            if (statistic.has(Statistic.STATISTIC_BLOG_COMMENT_COUNT) && statistic.has(Statistic.STATISTIC_BLOG_ARTICLE_COUNT)) {
                 LOGGER.info("No need for repairing statistic");
                 renderer.setContent("No need for repairing statistic.");
 
@@ -194,17 +208,10 @@ public final class RepairProcessor {
                 statistic.put(Statistic.STATISTIC_BLOG_ARTICLE_COUNT, statistic.getInt(Statistic.STATISTIC_PUBLISHED_ARTICLE_COUNT));
             }
 
-            transaction = statisticRepository.beginTransaction();
-            statisticRepository.update(Statistic.STATISTIC, statistic);
-
-            transaction.commit();
+            statisticMgmtService.updateStatistic(statistic);
 
             renderer.setContent("Restores statistic succeeded.");
         } catch (final Exception e) {
-            if (null != transaction && transaction.isActive()) {
-                transaction.rollback();
-            }
-
             LOGGER.log(Level.SEVERE, e.getMessage(), e);
             renderer.setContent("Restores statistics failed, error msg[" + e.getMessage() + "]");
         }
@@ -218,17 +225,20 @@ public final class RepairProcessor {
     @RequestProcessing(value = "/fix/restore-signs.do", method = HTTPRequestMethod.GET)
     public void restoreSigns(final HTTPRequestContext context) {
         final TextHTMLRenderer renderer = new TextHTMLRenderer();
+
         context.setRenderer(renderer);
 
         try {
             final JSONObject preference = preferenceQueryService.getPreference();
             final String originalSigns = preference.getString(Preference.SIGNS);
+
             preference.put(Preference.SIGNS, Preference.Default.DEFAULT_SIGNS);
 
             PreferenceMgmtService.getInstance().updatePreference(preference);
 
             // Sends the sample signs to developer
             final Message msg = new MailService.Message();
+
             msg.setFrom(preference.getString(Preference.ADMIN_EMAIL));
             msg.addRecipient("DL88250@gmail.com");
             msg.setSubject("Restore signs");
@@ -250,24 +260,29 @@ public final class RepairProcessor {
     @RequestProcessing(value = "/fix/tag-article-counter-repair.do", method = HTTPRequestMethod.GET)
     public void repairTagArticleCounter(final HTTPRequestContext context) {
         final TextHTMLRenderer renderer = new TextHTMLRenderer();
+
         context.setRenderer(renderer);
 
         final Transaction transaction = tagRepository.beginTransaction();
+
         try {
             final JSONObject result = tagRepository.get(new Query());
             final JSONArray tagArray = result.getJSONArray(Keys.RESULTS);
             final List<JSONObject> tags = CollectionUtils.jsonArrayToList(tagArray);
+
             for (final JSONObject tag : tags) {
                 final String tagId = tag.getString(Keys.OBJECT_ID);
                 final JSONObject tagArticleResult = tagArticleRepository.getByTagId(tagId, 1, Integer.MAX_VALUE);
                 final JSONArray tagArticles = tagArticleResult.getJSONArray(Keys.RESULTS);
                 final int tagRefCnt = tagArticles.length();
                 int publishedTagRefCnt = 0;
+
                 for (int i = 0; i < tagRefCnt; i++) {
                     final JSONObject tagArticle = tagArticles.getJSONObject(i);
                     final String articleId = tagArticle.getString(Article.ARTICLE + "_" + Keys.OBJECT_ID);
                     final JSONObject article = articleRepository.get(articleId);
                     final boolean isPublished = article.getBoolean(Article.ARTICLE_IS_PUBLISHED);
+
                     if (isPublished) {
                         publishedTagRefCnt++;
                     }
@@ -279,7 +294,7 @@ public final class RepairProcessor {
                 tagRepository.update(tagId, tag);
 
                 LOGGER.log(Level.INFO, "Repaired tag[title={0}, refCnt={1}, publishedTagRefCnt={2}]",
-                           new Object[]{tag.getString(Tag.TAG_TITLE), tagRefCnt, publishedTagRefCnt});
+                    new Object[] {tag.getString(Tag.TAG_TITLE), tagRefCnt, publishedTagRefCnt});
             }
 
             transaction.commit();
@@ -304,18 +319,20 @@ public final class RepairProcessor {
     @RequestProcessing(value = "/rm-all-data.do", method = HTTPRequestMethod.GET)
     public void removeAllDataGET(final HTTPRequestContext context, final HttpServletRequest request) {
         final TextHTMLRenderer renderer = new TextHTMLRenderer();
+
         context.setRenderer(renderer);
 
         try {
             final StringBuilder htmlBuilder = new StringBuilder();
+
             htmlBuilder.append("<html><head><title>WARNING!</title>");
             htmlBuilder.append("<script type='text/javascript'");
             htmlBuilder.append("src='http://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js'");
             htmlBuilder.append("></script></head><body>");
-            htmlBuilder.append("<button id='ok' onclick='remove()'>");
+            htmlBuilder.append("<button id='ok' onclick='removeData()'>");
             htmlBuilder.append("Continue to delete ALL DATA</button></body>");
             htmlBuilder.append("<script type='text/javascript'>");
-            htmlBuilder.append("function remove() {");
+            htmlBuilder.append("function removeData() {");
             htmlBuilder.append("$.ajax({type: 'POST',url:'").append(Latkes.getContextPath()).append("/rm-all-data.do',");
             htmlBuilder.append("dataType: 'text/html',success: function(result){");
             htmlBuilder.append("$('html').html(result);}});}</script></html>");
@@ -337,13 +354,14 @@ public final class RepairProcessor {
      * 
      * @param context the specified context
      */
-    @RequestProcessing(value = {"/rm-all-data.do"}, method = HTTPRequestMethod.POST)
+    @RequestProcessing(value = { "/rm-all-data.do"}, method = HTTPRequestMethod.POST)
     public void removeAllDataPOST(final HTTPRequestContext context) {
         LOGGER.info("Removing all data....");
 
         PageCaches.removeAll();
 
         boolean succeed = false;
+
         try {
             remove(ArchiveDateArticleRepositoryImpl.getInstance());
             remove(ArchiveDateRepositoryImpl.getInstance());
@@ -356,6 +374,7 @@ public final class RepairProcessor {
             remove(TagArticleRepositoryImpl.getInstance());
             remove(TagRepositoryImpl.getInstance());
             remove(UserRepositoryImpl.getInstance());
+            remove(PluginRepositoryImpl.getInstance());
 
             succeed = true;
         } catch (final Exception e) {
@@ -364,10 +383,12 @@ public final class RepairProcessor {
         }
 
         final StringBuilder htmlBuilder = new StringBuilder();
+
         htmlBuilder.append("<html><head><title>Result</title></head><body>");
 
         try {
             final TextHTMLRenderer renderer = new TextHTMLRenderer();
+
             context.setRenderer(renderer);
             if (succeed) {
                 htmlBuilder.append("Removed all data!");
@@ -405,8 +426,10 @@ public final class RepairProcessor {
         try {
             final JSONObject result = repository.get(new Query());
             final JSONArray array = result.getJSONArray(Keys.RESULTS);
+
             for (int i = 0; i < array.length(); i++) {
                 final JSONObject object = array.getJSONObject(i);
+
                 repository.remove(object.getString(Keys.OBJECT_ID));
 
                 if (System.currentTimeMillis() >= startTime + step) {
