@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 package org.b3log.solo;
 
+
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletContextEvent;
@@ -25,22 +27,25 @@ import javax.servlet.http.HttpSessionEvent;
 import org.b3log.latke.Keys;
 import org.b3log.latke.event.EventManager;
 import org.b3log.latke.plugin.PluginManager;
+import org.b3log.latke.plugin.ViewLoadEventHandler;
+import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.servlet.AbstractServletListener;
+import org.b3log.latke.util.Requests;
+import org.b3log.latke.util.Stopwatchs;
+import org.b3log.latke.util.Strings;
+import org.b3log.latke.util.freemarker.Templates;
+import org.b3log.solo.event.cache.RemoveCacheListener;
 import org.b3log.solo.event.comment.ArticleCommentReplyNotifier;
 import org.b3log.solo.event.comment.PageCommentReplyNotifier;
 import org.b3log.solo.event.ping.AddArticleGoogleBlogSearchPinger;
 import org.b3log.solo.event.ping.UpdateArticleGoogleBlogSearchPinger;
-import org.b3log.solo.event.rhythm.ArticleSender;
-import org.b3log.solo.model.Preference;
-import org.b3log.latke.plugin.ViewLoadEventHandler;
-import org.b3log.latke.repository.RepositoryException;
-import org.b3log.latke.util.Stopwatchs;
-import org.b3log.latke.util.Strings;
 import org.b3log.solo.event.plugin.PluginRefresher;
+import org.b3log.solo.event.rhythm.ArticleSender;
+import org.b3log.solo.event.rhythm.ArticleUpdater;
+import org.b3log.solo.event.symphony.CommentSender;
+import org.b3log.solo.model.Preference;
 import org.b3log.solo.model.Skin;
-import org.b3log.latke.util.Requests;
-import org.b3log.latke.util.freemarker.Templates;
 import org.b3log.solo.repository.PreferenceRepository;
 import org.b3log.solo.repository.impl.PreferenceRepositoryImpl;
 import org.b3log.solo.repository.impl.UserRepositoryImpl;
@@ -48,11 +53,12 @@ import org.b3log.solo.util.Skins;
 import org.b3log.solo.util.Statistics;
 import org.json.JSONObject;
 
+
 /**
  * B3log Solo servlet listener.
  *
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @version 1.0.7.1, May 29, 2011
+ * @version 1.0.9.9, Apr 26, 2013
  * @since 0.3.1
  */
 public final class SoloServletListener extends AbstractServletListener {
@@ -60,23 +66,39 @@ public final class SoloServletListener extends AbstractServletListener {
     /**
      * B3log Solo version.
      */
-    public static final String VERSION = "0.4.5";
+    public static final String VERSION = "0.6.0";
+
     /**
      * Logger.
      */
     private static final Logger LOGGER = Logger.getLogger(SoloServletListener.class.getName());
+
     /**
      * JSONO print indent factor.
      */
     public static final int JSON_PRINT_INDENT_FACTOR = 4;
-    /**
-     * B3log Rhythm address.
-     */
-    public static final String B3LOG_RHYTHM_ADDRESS = "http://b3log-rhythm.appspot.com:80";
+
     /**
      * Enter escape.
      */
     public static final String ENTER_ESC = "_esc_enter_88250_";
+
+    /**
+     * B3log Rhythm address.
+     */
+    public static final String B3LOG_RHYTHM_SERVE_PATH;
+
+    /**
+     * B3log Symphony address.
+     */
+    public static final String B3LOG_SYMPHONY_SERVE_PATH;
+
+    static {
+        final ResourceBundle b3log = ResourceBundle.getBundle("b3log");
+
+        B3LOG_RHYTHM_SERVE_PATH = b3log.getString("rhythm.servePath");
+        B3LOG_SYMPHONY_SERVE_PATH = b3log.getString("symphony.servePath");
+    }
 
     @Override
     public void contextInitialized(final ServletContextEvent servletContextEvent) {
@@ -84,8 +106,8 @@ public final class SoloServletListener extends AbstractServletListener {
 
         super.contextInitialized(servletContextEvent);
 
-        // Default to skin "classic", loads from preference later
-        Skins.setDirectoryForTemplateLoading("classic");
+        // Default to skin "ease", loads from preference later
+        Skins.setDirectoryForTemplateLoading("ease");
 
         final PreferenceRepository preferenceRepository = PreferenceRepositoryImpl.getInstance();
 
@@ -105,14 +127,14 @@ public final class SoloServletListener extends AbstractServletListener {
             }
         }
 
-        PluginManager.getInstance().load();
-
         registerEventProcessor();
+
+        PluginManager.getInstance().load();
 
         LOGGER.info("Initialized the context");
 
         Stopwatchs.end();
-        LOGGER.log(Level.FINE, "Stopwatch: {0}{1}", new Object[]{Strings.LINE_SEPARATOR, Stopwatchs.getTimingStat()});
+        LOGGER.log(Level.FINE, "Stopwatch: {0}{1}", new Object[] {Strings.LINE_SEPARATOR, Stopwatchs.getTimingStat()});
     }
 
     @Override
@@ -123,18 +145,17 @@ public final class SoloServletListener extends AbstractServletListener {
     }
 
     @Override
-    public void sessionCreated(final HttpSessionEvent httpSessionEvent) {
-    }
+    public void sessionCreated(final HttpSessionEvent httpSessionEvent) {}
 
     // Note: This method will never invoked on GAE production environment
     @Override
-    public void sessionDestroyed(final HttpSessionEvent httpSessionEvent) {
-    }
+    public void sessionDestroyed(final HttpSessionEvent httpSessionEvent) {}
 
     @Override
     public void requestInitialized(final ServletRequestEvent servletRequestEvent) {
         final HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequestEvent.getServletRequest();
         final String requestURI = httpServletRequest.getRequestURI();
+
         Stopwatchs.start("Request Initialized[requestURI=" + requestURI + "]");
 
         if (Requests.searchEngineBotRequest(httpServletRequest)) {
@@ -143,9 +164,9 @@ public final class SoloServletListener extends AbstractServletListener {
         } else {
             // Gets the session of this request
             final HttpSession session = httpServletRequest.getSession();
-            LOGGER.log(Level.FINE, "Gets a session[id={0}, remoteAddr={1}, User-Agent={2}, isNew={3}]",
-                       new Object[]{session.getId(), httpServletRequest.getRemoteAddr(), httpServletRequest.getHeader("User-Agent"),
-                                    session.isNew()});
+
+            LOGGER.log(Level.FINE, "Gets a session[id={0}, remoteAddr={1}, User-Agent={2}, isNew={3}]", new Object[] {
+                session.getId(), httpServletRequest.getRemoteAddr(), httpServletRequest.getHeader("User-Agent"), session.isNew()});
             // Online visitor count
             Statistics.onlineVisitorCount(httpServletRequest);
         }
@@ -157,7 +178,7 @@ public final class SoloServletListener extends AbstractServletListener {
     public void requestDestroyed(final ServletRequestEvent servletRequestEvent) {
         Stopwatchs.end();
 
-        LOGGER.log(Level.FINE, "Stopwatch: {0}{1}", new Object[]{Strings.LINE_SEPARATOR, Stopwatchs.getTimingStat()});
+        LOGGER.log(Level.FINE, "Stopwatch: {0}{1}", new Object[] {Strings.LINE_SEPARATOR, Stopwatchs.getTimingStat()});
         Stopwatchs.release();
 
         super.requestDestroyed(servletRequestEvent);
@@ -196,6 +217,7 @@ public final class SoloServletListener extends AbstractServletListener {
             Skins.loadSkins(preference);
 
             final boolean pageCacheEnabled = preference.getBoolean(Preference.PAGE_CACHE_ENABLED);
+
             Templates.enableCache(pageCacheEnabled);
         } catch (final Exception e) {
             LOGGER.log(Level.SEVERE, e.getMessage(), e);
@@ -233,13 +255,21 @@ public final class SoloServletListener extends AbstractServletListener {
         try {
             final EventManager eventManager = EventManager.getInstance();
 
+            // Comment
             eventManager.registerListener(new ArticleCommentReplyNotifier());
             eventManager.registerListener(new PageCommentReplyNotifier());
+            // Article
             eventManager.registerListener(new AddArticleGoogleBlogSearchPinger());
             eventManager.registerListener(new UpdateArticleGoogleBlogSearchPinger());
-            eventManager.registerListener(new ArticleSender());
+            // Plugin
             eventManager.registerListener(new PluginRefresher());
             eventManager.registerListener(new ViewLoadEventHandler());
+            // Sync
+            eventManager.registerListener(new ArticleSender());
+            eventManager.registerListener(new ArticleUpdater());
+            eventManager.registerListener(new CommentSender());
+            // Cache
+            eventManager.registerListener(new RemoveCacheListener());
         } catch (final Exception e) {
             LOGGER.log(Level.SEVERE, "Register event processors error", e);
             throw new IllegalStateException(e);
@@ -259,7 +289,8 @@ public final class SoloServletListener extends AbstractServletListener {
         try {
             final PreferenceRepository preferenceRepository = PreferenceRepositoryImpl.getInstance();
             final JSONObject preference = preferenceRepository.get(Preference.PREFERENCE);
-            if (null == preference) {  // Did not initialize yet
+
+            if (null == preference) { // Did not initialize yet
                 return;
             }
 
@@ -267,8 +298,7 @@ public final class SoloServletListener extends AbstractServletListener {
 
             String desiredView = Requests.mobileSwitchToggle(httpServletRequest);
 
-            if (desiredView == null && !Requests.mobileRequest(httpServletRequest)
-                || desiredView != null && desiredView.equals("normal")) {
+            if (desiredView == null && !Requests.mobileRequest(httpServletRequest) || desiredView != null && desiredView.equals("normal")) {
                 desiredView = preference.getString(Skin.SKIN_DIR_NAME);
             } else {
                 desiredView = "mobile";

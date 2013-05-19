@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package org.b3log.solo.service;
 
+
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,11 +30,12 @@ import org.b3log.solo.repository.impl.TagRepositoryImpl;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+
 /**
  * Tag query service.
  *
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @version 1.0.0.2, Nov 11, 2011
+ * @version 1.0.0.3, Jun 28, 2012
  * @since 0.4.0
  */
 public final class TagQueryService {
@@ -41,8 +43,8 @@ public final class TagQueryService {
     /**
      * Logger.
      */
-    private static final Logger LOGGER =
-            Logger.getLogger(TagQueryService.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(TagQueryService.class.getName());
+
     /**
      * Tag repository.
      */
@@ -65,8 +67,7 @@ public final class TagQueryService {
      * </pre>, returns {@code null} if not found
      * @throws ServiceException service exception
      */
-    public JSONObject getTagByTitle(final String tagTitle)
-            throws ServiceException {
+    public JSONObject getTagByTitle(final String tagTitle) throws ServiceException {
         try {
             final JSONObject ret = new JSONObject();
 
@@ -83,6 +84,22 @@ public final class TagQueryService {
             return ret;
         } catch (final RepositoryException e) {
             LOGGER.log(Level.SEVERE, "Gets an article failed", e);
+            throw new ServiceException(e);
+        }
+    }
+
+    /**
+     * Gets the count of tags.
+     * 
+     * @return count of tags
+     * @throws ServiceException service exception
+     */
+    public long getTagCount() throws ServiceException {
+        try {
+            return tagRepository.count();
+        } catch (final RepositoryException e) {
+            LOGGER.log(Level.SEVERE, "Gets tags failed", e);
+
             throw new ServiceException(e);
         }
     }
@@ -126,8 +143,7 @@ public final class TagQueryService {
     /**
      * Private constructor.
      */
-    private TagQueryService() {
-    }
+    private TagQueryService() {}
 
     /**
      * Singleton holder.
@@ -140,13 +156,11 @@ public final class TagQueryService {
         /**
          * Singleton.
          */
-        private static final TagQueryService SINGLETON =
-                new TagQueryService();
+        private static final TagQueryService SINGLETON = new TagQueryService();
 
         /**
          * Private default constructor.
          */
-        private SingletonHolder() {
-        }
+        private SingletonHolder() {}
     }
 }

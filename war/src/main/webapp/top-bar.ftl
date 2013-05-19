@@ -1,13 +1,12 @@
 <style type="text/css">
     #top {
-        background-image: linear-gradient(top,#FFFFFF,#E5E5E5);
-        background-image: -moz-linear-gradient(top,#FFFFFF,#E5E5E5);
-        background-image: -ms-linear-gradient(top,#FFFFFF,#E5E5E5);
-        background-image: -o-linear-gradient(top,#FFFFFF,#E5E5E5);
-        background-image: -webkit-gradient(linear,left top,left bottom,from(#FFFFFF),to(#E5E5E5));
-        filter:  progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFFFFF', endColorstr='#E5E5E5');
+        background-color: #FFF;
+        background-image: linear-gradient(#FFFFFF,#E5E5E5);
+        background-image: -ms-linear-gradient(#FFFFFF,#E5E5E5);
+        background-image: -o-linear-gradient(#FFFFFF,#E5E5E5);
+        background-image: -webkit-linear-gradient(#FFFFFF,#E5E5E5);
+        filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorstr='#FFFFFF', endColorstr='#E5E5E5');
         border-bottom: 1px solid #E5E5E5;
-        height: 26px;
         line-height: 26px;
         display: none;
     }
@@ -67,8 +66,8 @@
     <a href="https://github.com/b3log/b3log-solo" target="_blank" class="hover">
         B3log Solo
     </a>
-    &nbsp;${onlineVisitor1Label}${onlineVisitorCnt}
-    <span class="right" id="admin">
+    <span class="left">&nbsp;${onlineVisitor1Label}${onlineVisitorCnt}</span>
+    <span class="right" id="admin" data-login="${isLoggedIn?string}">
         <#if isLoggedIn>
         <span>${userName}</span>
         <#if isAdmin>
@@ -78,13 +77,14 @@
         <a href="javascript:Util.clearCache();">
             ${clearCacheLabel}
         </a>
+        </#if>
         <a href="${contextPath}/admin-index.do#main" title="${adminLabel}">
             ${adminLabel}
         </a>
         <a href="${logoutURL}" title="${logoutLabel}">${logoutLabel}</a>
-        </#if>
         <#else>
         <a href="${loginURL}" title="${loginLabel}">${loginLabel}</a>
+        <a href="/register" title="${registerLabel}">${registerLabel}</a>
         </#if>
         <#if isMobileRequest>
         <a href="javascript:void(0)" onclick="Util.switchMobile('mobile');" title="${mobileLabel}">${mobileLabel}</a>
