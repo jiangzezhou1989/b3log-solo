@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package org.b3log.solo.processor.util;
+
 
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
@@ -42,12 +43,13 @@ import org.b3log.solo.util.Users;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+
 /**
  * Top bar utilities.
  *
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @author <a href="mailto:dongxv.vang@gmail.com">Dongxu Wang</a>
- * @version 1.0.0.4, May 4, 2012
+ * @author <a href="mailto:dongxu.wang@acm.org">Dongxu Wang</a>
+ * @version 1.0.1.5, Apr 10, 2013
  * @since 0.3.5
  */
 public final class TopBars {
@@ -56,14 +58,17 @@ public final class TopBars {
      * Logger.
      */
     private static final Logger LOGGER = Logger.getLogger(TopBars.class.getName());
+
     /**
      * User utilities.
      */
     private static Users userUtils = Users.getInstance();
+
     /**
      * User service.
      */
     private static UserService userService = UserServiceFactory.getUserService();
+
     /**
      * Language service.
      */
@@ -78,7 +83,7 @@ public final class TopBars {
      * @throws ServiceException service exception 
      */
     public static String getTopBarHTML(final HttpServletRequest request, final HttpServletResponse response)
-            throws ServiceException {
+        throws ServiceException {
         Stopwatchs.start("Gens Top Bar HTML");
 
         try {
@@ -102,6 +107,7 @@ public final class TopBars {
             if (null == currentUser) {
                 topBarModel.put(Common.LOGIN_URL, userService.createLoginURL(Common.ADMIN_INDEX_URI));
                 topBarModel.put("loginLabel", langPropsService.get("loginLabel"));
+                topBarModel.put("registerLabel", langPropsService.get("registerLabel"));
 
                 topBarTemplate.process(topBarModel, stringWriter);
 
@@ -118,6 +124,7 @@ public final class TopBars {
             topBarModel.put("logoutLabel", langPropsService.get("logoutLabel"));
 
             final String userName = currentUser.getString(User.USER_NAME);
+
             topBarModel.put(User.USER_NAME, userName);
 
             topBarTemplate.process(topBarModel, stringWriter);
@@ -140,6 +147,5 @@ public final class TopBars {
     /**
      * Private default constructor.
      */
-    private TopBars() {
-    }
+    private TopBars() {}
 }

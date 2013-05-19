@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package org.b3log.solo.service;
 
-import org.b3log.latke.service.ServiceException;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
@@ -25,6 +25,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang.time.DateFormatUtils;
+import org.apache.commons.lang.time.DateUtils;
 import org.b3log.latke.Keys;
 import org.b3log.latke.Latkes;
 import org.b3log.latke.RuntimeEnv;
@@ -34,31 +36,30 @@ import org.b3log.latke.repository.RepositoryException;
 import org.b3log.latke.repository.Transaction;
 import org.b3log.latke.repository.jdbc.util.JdbcRepositories;
 import org.b3log.latke.repository.jdbc.util.JdbcRepositories.CreateTableResult;
+import org.b3log.latke.service.LangPropsService;
+import org.b3log.latke.service.ServiceException;
 import org.b3log.latke.util.Ids;
+import org.b3log.latke.util.MD5;
 import org.b3log.latke.util.freemarker.Templates;
 import org.b3log.solo.SoloServletListener;
 import org.b3log.solo.model.*;
-import org.b3log.solo.repository.PreferenceRepository;
-import org.b3log.solo.repository.StatisticRepository;
-import org.b3log.solo.repository.UserRepository;
-import org.b3log.solo.repository.impl.PreferenceRepositoryImpl;
-import org.b3log.solo.repository.impl.StatisticRepositoryImpl;
-import org.b3log.solo.repository.impl.UserRepositoryImpl;
+import static org.b3log.solo.model.Preference.*;
+import org.b3log.solo.model.Preference.Default;
+import org.b3log.solo.repository.*;
+import org.b3log.solo.repository.impl.*;
+import org.b3log.solo.util.Comments;
 import org.b3log.solo.util.Skins;
 import org.b3log.solo.util.TimeZones;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import static org.b3log.solo.model.Preference.*;
-import org.b3log.solo.repository.*;
-import org.b3log.solo.repository.impl.*;
-import org.b3log.solo.util.Comments;
+
 
 /**
  * B3log Solo initialization service.
  *
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @version 1.0.1.0, Apr 29, 2012
+ * @version 1.0.1.6, May 17, 2013
  * @since 0.4.0
  */
 public final class InitService {
@@ -67,50 +68,66 @@ public final class InitService {
      * Logger.
      */
     private static final Logger LOGGER = Logger.getLogger(InitService.class.getName());
+
     /**
      * Statistic repository.
      */
     private StatisticRepository statisticRepository = StatisticRepositoryImpl.getInstance();
+
     /**
      * Preference repository.
      */
     private PreferenceRepository preferenceRepository = PreferenceRepositoryImpl.getInstance();
+
     /**
      * User repository.
      */
     private UserRepository userRepository = UserRepositoryImpl.getInstance();
+
     /**
      * Tag-Article repository.
      */
     private TagArticleRepository tagArticleRepository = TagArticleRepositoryImpl.getInstance();
+
     /**
      * Archive date repository.
      */
     private ArchiveDateRepository archiveDateRepository = ArchiveDateRepositoryImpl.getInstance();
+
     /**
      * Archive date-Article repository.
      */
     private ArchiveDateArticleRepository archiveDateArticleRepository = ArchiveDateArticleRepositoryImpl.getInstance();
+
     /**
      * Tag repository.
      */
     private TagRepository tagRepository = TagRepositoryImpl.getInstance();
+
     /**
      * Article repository.
      */
     private ArticleRepository articleRepository = ArticleRepositoryImpl.getInstance();
+
     /**
      * Comment repository.
      */
     private static CommentRepository commentRepository = CommentRepositoryImpl.getInstance();
+
     /**
      * Maximum count of initialization.
      */
     private static final int MAX_RETRIES_CNT = 3;
+
     /**
      * Initialized time zone id.
      */
     private static final String INIT_TIME_ZONE_ID = "Asia/Shanghai";
+
+    /**
+     * Language service.
+     */
+    private LangPropsService langPropsService = LangPropsService.getInstance();
 
     /**
      * Initializes B3log Solo.
@@ -137,7 +154,7 @@ public final class InitService {
      * {
      *     "userName": "",
      *     "userEmail": "",
-     *     "userPassword": ""，
+     *     "userPassword": "", // Unhashed
      * }
      * </pre>
      * @throws ServiceException service exception
@@ -146,29 +163,35 @@ public final class InitService {
         if (SoloServletListener.isInited()) {
             return;
         }
-        
-        if (RuntimeEnv.LOCAL == Latkes.getRuntimeEnv()) {
-            LOGGER.log(Level.INFO, "B3log Solo is running on [Local] environment, database [{0}], creates all tables",
-                       Latkes.getRuntimeDatabase());
+
+        final RuntimeEnv runtimeEnv = Latkes.getRuntimeEnv();
+
+        if (RuntimeEnv.LOCAL == runtimeEnv || RuntimeEnv.BAE == runtimeEnv) {
+            LOGGER.log(Level.INFO, "B3log Solo is running on [" + runtimeEnv + "] environment, database [{0}], creates all tables",
+                Latkes.getRuntimeDatabase());
             final List<CreateTableResult> createTableResults = JdbcRepositories.initAllTables();
+
             for (final CreateTableResult createTableResult : createTableResults) {
                 LOGGER.log(Level.INFO, "Create table result[tableName={0}, isSuccess={1}]",
-                           new Object[]{createTableResult.getName(), createTableResult.isSuccess()});
+                    new Object[] {createTableResult.getName(), createTableResult.isSuccess()});
             }
         }
-        
+
         int retries = MAX_RETRIES_CNT;
+
         while (true) {
             final Transaction transaction = userRepository.beginTransaction();
+
             try {
                 final JSONObject statistic = statisticRepository.get(Statistic.STATISTIC);
+
                 if (null == statistic) {
                     initStatistic();
                     initPreference(requestJSONObject);
                     initReplyNotificationTemplate();
                     initAdmin(requestJSONObject);
                 }
-                
+
                 transaction.commit();
                 break;
             } catch (final Exception e) {
@@ -186,8 +209,9 @@ public final class InitService {
                 }
             }
         }
-        
+
         final Transaction transaction = userRepository.beginTransaction();
+
         try {
             helloWorld();
             transaction.commit();
@@ -195,31 +219,22 @@ public final class InitService {
             if (transaction.isActive()) {
                 transaction.rollback();
             }
-            
+
             LOGGER.log(Level.SEVERE, "Hello World error?!", e);
         }
     }
 
     /**
-     * Publishes the first article "Hello World" and the first comment.
+     * Publishes the first article "Hello World" and the first comment with the specified locale.
      *
      * @throws Exception exception
      */
     private void helloWorld() throws Exception {
         final JSONObject article = new JSONObject();
 
-        // XXX: no i18n
-        article.put(Article.ARTICLE_TITLE, "Hello World!");
-        final String content = "Welcome to <a style=\"text-decoration: none;\" target=\"_blank\" "
-                               + "href=\"https://github.com/b3log/b3log-solo\">"
-                               + "<span style=\"color: orange;\">B</span>"
-                               + "<span style=\"font-size: 9px; color: blue;\">"
-                               + "<sup>3</sup></span><span style=\"color: green;\">L</span>"
-                               + "<span style=\"color: red;\">O</span>"
-                               + "<span style=\"color: blue;\">G</span> "
-                               + " <span style=\"color: orangered; font-weight: bold;\">Solo</span>"
-                               + "</a>. This is your first post. Edit or delete it, "
-                               + "then start blogging!";
+        article.put(Article.ARTICLE_TITLE, langPropsService.get("helloWorld.title"));
+        final String content = langPropsService.get("helloWorld.content");
+
         article.put(Article.ARTICLE_ABSTRACT, content);
         article.put(Article.ARTICLE_CONTENT, content);
         article.put(Article.ARTICLE_TAGS_REF, "B3log");
@@ -230,6 +245,7 @@ public final class InitService {
         article.put(Article.ARTICLE_COMMENT_COUNT, 1);
         article.put(Article.ARTICLE_VIEW_COUNT, 0);
         final Date date = TimeZones.getTime(INIT_TIME_ZONE_ID);
+
         article.put(Article.ARTICLE_CREATE_DATE, date);
         article.put(Article.ARTICLE_UPDATE_DATE, date);
         article.put(Article.ARTICLE_PUT_TOP, false);
@@ -238,31 +254,31 @@ public final class InitService {
         article.put(Article.ARTICLE_COMMENTABLE, true);
         article.put(Article.ARTICLE_VIEW_PWD, "");
         article.put(Article.ARTICLE_EDITOR_TYPE, Default.DEFAULT_EDITOR_TYPE);
-        
+
         final String articleId = addHelloWorldArticle(article);
-        
+
         final JSONObject comment = new JSONObject();
+
         comment.put(Keys.OBJECT_ID, articleId);
         comment.put(Comment.COMMENT_NAME, "88250");
         comment.put(Comment.COMMENT_EMAIL, "dl88250@gmail.com");
         comment.put(Comment.COMMENT_URL, "http://88250.b3log.org");
-        comment.put(Comment.COMMENT_CONTENT, StringEscapeUtils.escapeHtml(
-                "Hi, this is a comment. To delete a comment, just log in and "
-                + "view the post's comments. There you will have the option "
-                + "to delete them."));
+        comment.put(Comment.COMMENT_CONTENT, StringEscapeUtils.escapeHtml(langPropsService.get("helloWorld.comment.content")));
         comment.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, "");
         comment.put(Comment.COMMENT_ORIGINAL_COMMENT_NAME, "");
-        comment.put(Comment.COMMENT_THUMBNAIL_URL, "http://www.gravatar.com/avatar/59a5e8209c780307dbe9c9ba728073f5?s=60&r=G");
+        comment.put(Comment.COMMENT_THUMBNAIL_URL, "http://secure.gravatar.com/avatar/59a5e8209c780307dbe9c9ba728073f5??s=60&r=G");
         comment.put(Comment.COMMENT_DATE, date);
         comment.put(Comment.COMMENT_ON_ID, articleId);
         comment.put(Comment.COMMENT_ON_TYPE, Article.ARTICLE);
         final String commentId = Ids.genTimeMillisId();
+
         comment.put(Keys.OBJECT_ID, commentId);
         final String commentSharpURL = Comments.getCommentSharpURLForArticle(article, commentId);
+
         comment.put(Comment.COMMENT_SHARP_URL, commentSharpURL);
-        
+
         commentRepository.add(comment);
-        
+
         LOGGER.info("Hello World!");
     }
 
@@ -275,7 +291,7 @@ public final class InitService {
      */
     private String addHelloWorldArticle(final JSONObject article) throws RepositoryException {
         final String ret = Ids.genTimeMillisId();
-        
+
         try {
             article.put(Keys.OBJECT_ID, ret);
 
@@ -283,10 +299,12 @@ public final class InitService {
             final String tagsString = article.optString(Article.ARTICLE_TAGS_REF);
             final String[] tagTitles = tagsString.split(",");
             final JSONArray tags = tag(tagTitles, article);
+
             // Step 2: Add tag-article relations
             addTagArticleRelation(tags, article);
             // Step 3: Inc blog article and comment count statictis
             final JSONObject statistic = statisticRepository.get(Statistic.STATISTIC);
+
             statistic.put(Statistic.STATISTIC_BLOG_ARTICLE_COUNT, 1);
             statistic.put(Statistic.STATISTIC_PUBLISHED_ARTICLE_COUNT, 1);
             statistic.put(Statistic.STATISTIC_PUBLISHED_BLOG_COMMENT_COUNT, 1);
@@ -298,15 +316,16 @@ public final class InitService {
             articleRepository.add(article);
             // Step 6: Update admin user for article statistic
             final JSONObject admin = userRepository.getAdmin();
+
             admin.put(UserExt.USER_ARTICLE_COUNT, 1);
             admin.put(UserExt.USER_PUBLISHED_ARTICLE_COUNT, 1);
             userRepository.update(admin.optString(Keys.OBJECT_ID), admin);
         } catch (final RepositoryException e) {
             LOGGER.log(Level.SEVERE, "Adds an article failed", e);
-            
+
             throw new RepositoryException(e);
         }
-        
+
         return ret;
     }
 
@@ -326,23 +345,25 @@ public final class InitService {
      */
     public void archiveDate(final JSONObject article) throws RepositoryException {
         final Date createDate = (Date) article.opt(Article.ARTICLE_CREATE_DATE);
-        final String createDateString = ArchiveDate.DATE_FORMAT.format(createDate);
+        final String createDateString = DateFormatUtils.format(createDate, "yyyy/MM");
         final JSONObject archiveDate = new JSONObject();
+
         try {
-            archiveDate.put(ArchiveDate.ARCHIVE_TIME, ArchiveDate.DATE_FORMAT.parse(createDateString).getTime());
+            archiveDate.put(ArchiveDate.ARCHIVE_TIME, DateUtils.parseDate(createDateString, new String[] {"yyyy/MM"}).getTime());
             archiveDate.put(ArchiveDate.ARCHIVE_DATE_ARTICLE_COUNT, 1);
             archiveDate.put(ArchiveDate.ARCHIVE_DATE_PUBLISHED_ARTICLE_COUNT, 1);
-            
+
             archiveDateRepository.add(archiveDate);
         } catch (final ParseException e) {
             LOGGER.log(Level.SEVERE, e.getMessage(), e);
             throw new RepositoryException(e);
         }
-        
+
         final JSONObject archiveDateArticleRelation = new JSONObject();
+
         archiveDateArticleRelation.put(ArchiveDate.ARCHIVE_DATE + "_" + Keys.OBJECT_ID, archiveDate.optString(Keys.OBJECT_ID));
         archiveDateArticleRelation.put(Article.ARTICLE + "_" + Keys.OBJECT_ID, article.optString(Keys.OBJECT_ID));
-        
+
         archiveDateArticleRepository.add(archiveDateArticleRelation);
     }
 
@@ -357,10 +378,10 @@ public final class InitService {
         for (int i = 0; i < tags.length(); i++) {
             final JSONObject tag = tags.optJSONObject(i);
             final JSONObject tagArticleRelation = new JSONObject();
-            
+
             tagArticleRelation.put(Tag.TAG + "_" + Keys.OBJECT_ID, tag.optString(Keys.OBJECT_ID));
             tagArticleRelation.put(Article.ARTICLE + "_" + Keys.OBJECT_ID, article.optString(Keys.OBJECT_ID));
-            
+
             tagArticleRepository.add(tagArticleRelation);
         }
     }
@@ -375,21 +396,24 @@ public final class InitService {
      */
     private JSONArray tag(final String[] tagTitles, final JSONObject article) throws RepositoryException {
         final JSONArray ret = new JSONArray();
+
         for (int i = 0; i < tagTitles.length; i++) {
             final String tagTitle = tagTitles[i].trim();
             final JSONObject tag = new JSONObject();
+
             LOGGER.log(Level.FINEST, "Found a new tag[title={0}] in article[title={1}]",
-                       new Object[]{tagTitle, article.optString(Article.ARTICLE_TITLE)});
+                new Object[] {tagTitle, article.optString(Article.ARTICLE_TITLE)});
             tag.put(Tag.TAG_TITLE, tagTitle);
             tag.put(Tag.TAG_REFERENCE_COUNT, 1);
             tag.put(Tag.TAG_PUBLISHED_REFERENCE_COUNT, 1);
-            
+
             final String tagId = tagRepository.add(tag);
+
             tag.put(Keys.OBJECT_ID, tagId);
-            
+
             ret.put(tag);
         }
-        
+
         return ret;
     }
 
@@ -402,7 +426,7 @@ public final class InitService {
      * {
      *     "userName": "",
      *     "userEmail": "",
-     *     "userPassowrd": ""
+     *     "userPassowrd": "" // Unhashed
      * }
      * </pre>
      * @throws Exception exception
@@ -410,16 +434,17 @@ public final class InitService {
     private void initAdmin(final JSONObject requestJSONObject) throws Exception {
         LOGGER.info("Initializing admin....");
         final JSONObject admin = new JSONObject();
-        
+
         admin.put(User.USER_NAME, requestJSONObject.getString(User.USER_NAME));
         admin.put(User.USER_EMAIL, requestJSONObject.getString(User.USER_EMAIL));
+        admin.put(User.USER_URL, Latkes.getServePath());
         admin.put(User.USER_ROLE, Role.ADMIN_ROLE);
-        admin.put(User.USER_PASSWORD, requestJSONObject.getString(User.USER_PASSWORD));
+        admin.put(User.USER_PASSWORD, MD5.hash(requestJSONObject.getString(User.USER_PASSWORD)));
         admin.put(UserExt.USER_ARTICLE_COUNT, 0);
         admin.put(UserExt.USER_PUBLISHED_ARTICLE_COUNT, 0);
-        
+
         userRepository.add(admin);
-        
+
         LOGGER.info("Initialized admin");
     }
 
@@ -433,6 +458,7 @@ public final class InitService {
     private JSONObject initStatistic() throws RepositoryException, JSONException {
         LOGGER.info("Initializing statistic....");
         final JSONObject ret = new JSONObject();
+
         ret.put(Keys.OBJECT_ID, Statistic.STATISTIC);
         ret.put(Statistic.STATISTIC_BLOG_ARTICLE_COUNT, 0);
         ret.put(Statistic.STATISTIC_PUBLISHED_ARTICLE_COUNT, 0);
@@ -440,9 +466,9 @@ public final class InitService {
         ret.put(Statistic.STATISTIC_BLOG_COMMENT_COUNT, 0);
         ret.put(Statistic.STATISTIC_PUBLISHED_BLOG_COMMENT_COUNT, 0);
         statisticRepository.add(ret);
-        
+
         LOGGER.info("Initialized statistic");
-        
+
         return ret;
     }
 
@@ -453,13 +479,13 @@ public final class InitService {
      */
     private void initReplyNotificationTemplate() throws Exception {
         LOGGER.info("Initializing reply notification template");
-        
-        final JSONObject replyNotificationTemplate =
-                new JSONObject(Preference.Default.DEFAULT_REPLY_NOTIFICATION_TEMPLATE);
+
+        final JSONObject replyNotificationTemplate = new JSONObject(Preference.Default.DEFAULT_REPLY_NOTIFICATION_TEMPLATE);
+
         replyNotificationTemplate.put(Keys.OBJECT_ID, Preference.REPLY_NOTIFICATION_TEMPLATE);
-        
+
         preferenceRepository.add(replyNotificationTemplate);
-        
+
         LOGGER.info("Initialized reply notification template");
     }
 
@@ -472,9 +498,9 @@ public final class InitService {
      */
     private JSONObject initPreference(final JSONObject requestJSONObject) throws Exception {
         LOGGER.info("Initializing preference....");
-        
+
         final JSONObject ret = new JSONObject();
-        
+
         ret.put(NOTICE_BOARD, Default.DEFAULT_NOTICE_BOARD);
         ret.put(META_DESCRIPTION, Default.DEFAULT_META_DESCRIPTION);
         ret.put(META_KEYWORDS, Default.DEFAULT_META_KEYWORDS);
@@ -491,7 +517,6 @@ public final class InitService {
         ret.put(RECENT_COMMENT_DISPLAY_CNT, Default.DEFAULT_RECENT_COMMENT_DISPLAY_COUNT);
         ret.put(BLOG_TITLE, Default.DEFAULT_BLOG_TITLE);
         ret.put(BLOG_SUBTITLE, Default.DEFAULT_BLOG_SUBTITLE);
-        ret.put(BLOG_HOST, Latkes.getServePath());
         ret.put(ADMIN_EMAIL, requestJSONObject.getString(User.USER_EMAIL));
         ret.put(LOCALE_STRING, Default.DEFAULT_LANGUAGE);
         ret.put(ENABLE_ARTICLE_UPDATE_HINT, Default.DEFAULT_ENABLE_ARTICLE_UPDATE_HINT);
@@ -504,49 +529,56 @@ public final class InitService {
         ret.put(ARTICLE_LIST_STYLE, Default.DEFAULT_ARTICLE_LIST_STYLE);
         ret.put(KEY_OF_SOLO, Default.DEFAULT_KEY_OF_SOLO);
         ret.put(FEED_OUTPUT_MODE, Default.DEFAULT_FEED_OUTPUT_MODE);
+        ret.put(FEED_OUTPUT_CNT, Default.DEFAULT_FEED_OUTPUT_CNT);
         ret.put(EDITOR_TYPE, Default.DEFAULT_EDITOR_TYPE);
-        
+
         final String skinDirName = Default.DEFAULT_SKIN_DIR_NAME;
+
         ret.put(Skin.SKIN_DIR_NAME, skinDirName);
-        
+
         final String skinName = Skins.getSkinName(skinDirName);
+
         ret.put(Skin.SKIN_NAME, skinName);
-        
+
         final Set<String> skinDirNames = Skins.getSkinDirNames();
         final JSONArray skinArray = new JSONArray();
+
         for (final String dirName : skinDirNames) {
             final JSONObject skin = new JSONObject();
+
             skinArray.put(skin);
-            
+
             final String name = Skins.getSkinName(dirName);
+
             skin.put(Skin.SKIN_NAME, name);
             skin.put(Skin.SKIN_DIR_NAME, dirName);
         }
-        
+
         ret.put(Skin.SKINS, skinArray.toString());
-        
+
         try {
             final String webRootPath = SoloServletListener.getWebRoot();
             final String skinPath = webRootPath + Skin.SKINS + "/" + skinDirName;
+
             Templates.MAIN_CFG.setDirectoryForTemplateLoading(new File(skinPath));
         } catch (final IOException e) {
             LOGGER.log(Level.SEVERE, "Loads skins error!", e);
             throw new IllegalStateException(e);
         }
-        
+
         TimeZones.setTimeZone(INIT_TIME_ZONE_ID);
-        
+
         if (Default.DEFAULT_PAGE_CACHE_ENABLED) {
             Latkes.enablePageCache();
         } else {
             Latkes.disablePageCache();
         }
-        
+
         ret.put(Keys.OBJECT_ID, PREFERENCE);
         preferenceRepository.add(ret);
-        
+
         LOGGER.info("Initialized preference");
-        
+
         return ret;
     }
 
@@ -562,8 +594,7 @@ public final class InitService {
     /**
      * Private constructor.
      */
-    private InitService() {
-    }
+    private InitService() {}
 
     /**
      * Singleton holder.
@@ -576,13 +607,11 @@ public final class InitService {
         /**
          * Singleton.
          */
-        private static final InitService SINGLETON =
-                new InitService();
+        private static final InitService SINGLETON = new InitService();
 
         /**
          * Private default constructor.
          */
-        private SingletonHolder() {
-        }
+        private SingletonHolder() {}
     }
 }

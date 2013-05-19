@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import junit.framework.Assert;
 import org.b3log.latke.Keys;
 import org.b3log.latke.model.Role;
 import org.b3log.latke.model.User;
+import org.b3log.latke.util.MD5;
 import org.b3log.solo.AbstractTestCase;
 import org.json.JSONObject;
 import org.testng.annotations.Test;
@@ -27,7 +28,7 @@ import org.testng.annotations.Test;
  * {@link UserMgmtService} test case.
  *
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @version 1.0.0.1, Feb 23, 2012
+ * @version 1.0.0.2, May 16, 2013
  */
 @Test(suiteName = "service")
 public class UserMgmtServiceTestCase extends AbstractTestCase {
@@ -74,9 +75,20 @@ public class UserMgmtServiceTestCase extends AbstractTestCase {
         requestJSONObject.put(User.USER_NAME, "user2 new name");
 
         userMgmtService.updateUser(requestJSONObject);
-        
+
         Assert.assertEquals(getUserQueryService().getUser(id).getJSONObject(
                 User.USER).getString(User.USER_NAME), "user2 new name");
+
+        // Do not update password
+        requestJSONObject.put(Keys.OBJECT_ID, id);
+        requestJSONObject.put(User.USER_NAME, "user2 name");
+        requestJSONObject.put(User.USER_EMAIL, "test2@gmail.com");
+        requestJSONObject.put(User.USER_PASSWORD, "pass2");
+
+        userMgmtService.updateUser(requestJSONObject);
+
+        Assert.assertEquals(getUserQueryService().getUser(id).getJSONObject(
+                User.USER).getString(User.USER_PASSWORD), MD5.hash("pass2"));
     }
 
     /**

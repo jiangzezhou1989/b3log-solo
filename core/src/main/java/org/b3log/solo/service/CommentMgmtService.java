@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,15 +15,17 @@
  */
 package org.b3log.solo.service;
 
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.Date;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.b3log.latke.Keys;
+import org.b3log.latke.Latkes;
 import org.b3log.latke.event.Event;
 import org.b3log.latke.event.EventManager;
 import org.b3log.latke.repository.RepositoryException;
@@ -49,11 +51,12 @@ import org.b3log.solo.util.TimeZones;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+
 /**
  * Comment management service.
  *
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @version 1.0.0.2, Feb 3, 2012
+ * @version 1.0.0.4, Jan 18, 2013
  * @since 0.3.5
  */
 public final class CommentMgmtService {
@@ -62,38 +65,47 @@ public final class CommentMgmtService {
      * Logger.
      */
     private static final Logger LOGGER = Logger.getLogger(CommentMgmtService.class.getName());
+
     /**
      * Comment repository.
      */
     private CommentRepository commentRepository = CommentRepositoryImpl.getInstance();
+
     /**
      * Article repository.
      */
     private ArticleRepository articleRepository = ArticleRepositoryImpl.getInstance();
+
     /**
      * Page repository.
      */
     private PageRepository pageRepository = PageRepositoryImpl.getInstance();
+
     /**
      * Statistic utilities.
      */
     private Statistics statistics = Statistics.getInstance();
+
     /**
      * Preference query service.
      */
     private static PreferenceQueryService preferenceQueryService = PreferenceQueryService.getInstance();
+
     /**
      * Event manager.
      */
     private static EventManager eventManager = EventManager.getInstance();
+
     /**
      * Default user thumbnail.
      */
     private static final String DEFAULT_USER_THUMBNAIL = "default-user-thumbnail.png";
+
     /**
      * URL fetch service.
      */
     private static URLFetchService urlFetchService = URLFetchServiceFactory.getURLFetchService();
+
     /**
      * Article utilities.
      */
@@ -137,14 +149,17 @@ public final class CommentMgmtService {
             final String commentEmail = requestJSONObject.getString(Comment.COMMENT_EMAIL).trim().toLowerCase();
             final String commentURL = requestJSONObject.optString(Comment.COMMENT_URL);
             String commentContent = requestJSONObject.getString(Comment.COMMENT_CONTENT).replaceAll("\\n", SoloServletListener.ENTER_ESC);
+
             commentContent = StringEscapeUtils.escapeHtml(commentContent);
             final String originalCommentId = requestJSONObject.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID);
             // Step 1: Add comment
             final JSONObject comment = new JSONObject();
+
             comment.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, "");
             comment.put(Comment.COMMENT_ORIGINAL_COMMENT_NAME, "");
 
             JSONObject originalComment = null;
+
             comment.put(Comment.COMMENT_NAME, commentName);
             comment.put(Comment.COMMENT_EMAIL, commentEmail);
             comment.put(Comment.COMMENT_URL, commentURL);
@@ -152,18 +167,20 @@ public final class CommentMgmtService {
             final JSONObject preference = preferenceQueryService.getPreference();
             final String timeZoneId = preference.getString(Preference.TIME_ZONE_ID);
             final Date date = TimeZones.getTime(timeZoneId);
+
             comment.put(Comment.COMMENT_DATE, date);
-            ret.put(Comment.COMMENT_DATE, Comment.DATE_FORMAT.format(date));
+            ret.put(Comment.COMMENT_DATE, DateFormatUtils.format(date, "yyyy-MM-dd hh:mm:ss"));
             if (!Strings.isEmptyOrNull(originalCommentId)) {
                 originalComment = commentRepository.get(originalCommentId);
                 if (null != originalComment) {
                     comment.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, originalCommentId);
                     final String originalCommentName = originalComment.getString(Comment.COMMENT_NAME);
+
                     comment.put(Comment.COMMENT_ORIGINAL_COMMENT_NAME, originalCommentName);
                     ret.put(Comment.COMMENT_ORIGINAL_COMMENT_NAME, originalCommentName);
                 } else {
                     LOGGER.log(Level.WARNING, "Not found orginal comment[id={0}] of reply[name={1}, content={2}]",
-                               new String[]{originalCommentId, commentName, commentContent});
+                        new String[] {originalCommentId, commentName, commentContent});
                 }
             }
             setCommentThumbnailURL(comment);
@@ -172,9 +189,11 @@ public final class CommentMgmtService {
             comment.put(Comment.COMMENT_ON_ID, pageId);
             comment.put(Comment.COMMENT_ON_TYPE, Page.PAGE);
             final String commentId = Ids.genTimeMillisId();
+
             ret.put(Keys.OBJECT_ID, commentId);
             // Save comment sharp URL
             final String commentSharpURL = Comments.getCommentSharpURLForPage(page, commentId);
+
             ret.put(Comment.COMMENT_SHARP_URL, commentSharpURL);
             comment.put(Comment.COMMENT_SHARP_URL, commentSharpURL);
             comment.put(Keys.OBJECT_ID, commentId);
@@ -192,6 +211,7 @@ public final class CommentMgmtService {
             }
             // Step 5: Fire add comment event
             final JSONObject eventData = new JSONObject();
+
             eventData.put(Comment.COMMENT, comment);
             eventData.put(Page.PAGE, page);
             eventManager.fireEventSynchronously(new Event<JSONObject>(EventTypes.ADD_COMMENT_TO_PAGE, eventData));
@@ -246,14 +266,18 @@ public final class CommentMgmtService {
             final String commentEmail = requestJSONObject.getString(Comment.COMMENT_EMAIL).trim().toLowerCase();
             final String commentURL = requestJSONObject.optString(Comment.COMMENT_URL);
             String commentContent = requestJSONObject.getString(Comment.COMMENT_CONTENT).replaceAll("\\n", SoloServletListener.ENTER_ESC);
+            final String contentNoEsc = commentContent;
+
             commentContent = StringEscapeUtils.escapeHtml(commentContent);
             final String originalCommentId = requestJSONObject.optString(Comment.COMMENT_ORIGINAL_COMMENT_ID);
             // Step 1: Add comment
             final JSONObject comment = new JSONObject();
+
             comment.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, "");
             comment.put(Comment.COMMENT_ORIGINAL_COMMENT_NAME, "");
 
             JSONObject originalComment = null;
+
             comment.put(Comment.COMMENT_NAME, commentName);
             comment.put(Comment.COMMENT_EMAIL, commentEmail);
             comment.put(Comment.COMMENT_URL, commentURL);
@@ -263,19 +287,21 @@ public final class CommentMgmtService {
             final JSONObject preference = preferenceQueryService.getPreference();
             final String timeZoneId = preference.getString(Preference.TIME_ZONE_ID);
             final Date date = TimeZones.getTime(timeZoneId);
+
             comment.put(Comment.COMMENT_DATE, date);
-            ret.put(Comment.COMMENT_DATE, Comment.DATE_FORMAT.format(date));
+            ret.put(Comment.COMMENT_DATE, DateFormatUtils.format(date, "yyyy-MM-dd hh:mm:ss"));
 
             if (!Strings.isEmptyOrNull(originalCommentId)) {
                 originalComment = commentRepository.get(originalCommentId);
                 if (null != originalComment) {
                     comment.put(Comment.COMMENT_ORIGINAL_COMMENT_ID, originalCommentId);
                     final String originalCommentName = originalComment.getString(Comment.COMMENT_NAME);
+
                     comment.put(Comment.COMMENT_ORIGINAL_COMMENT_NAME, originalCommentName);
                     ret.put(Comment.COMMENT_ORIGINAL_COMMENT_NAME, originalCommentName);
                 } else {
                     LOGGER.log(Level.WARNING, "Not found orginal comment[id={0}] of reply[name={1}, content={2}]",
-                               new String[]{originalCommentId, commentName, commentContent});
+                        new String[] {originalCommentId, commentName, commentContent});
                 }
             }
             CommentMgmtService.setCommentThumbnailURL(comment);
@@ -284,9 +310,11 @@ public final class CommentMgmtService {
             comment.put(Comment.COMMENT_ON_ID, articleId);
             comment.put(Comment.COMMENT_ON_TYPE, Article.ARTICLE);
             final String commentId = Ids.genTimeMillisId();
+
             comment.put(Keys.OBJECT_ID, commentId);
             ret.put(Keys.OBJECT_ID, commentId);
             final String commentSharpURL = Comments.getCommentSharpURLForArticle(article, commentId);
+
             comment.put(Comment.COMMENT_SHARP_URL, commentSharpURL);
             ret.put(Comment.COMMENT_SHARP_URL, commentSharpURL);
 
@@ -304,7 +332,9 @@ public final class CommentMgmtService {
             }
             // Step 5: Fire add comment event
             final JSONObject eventData = new JSONObject();
+
             eventData.put(Comment.COMMENT, comment);
+            comment.put(Comment.COMMENT_CONTENT, contentNoEsc);
             eventData.put(Article.ARTICLE, article);
             eventManager.fireEventSynchronously(new Event<JSONObject>(EventTypes.ADD_COMMENT_TO_ARTICLE, eventData));
 
@@ -327,12 +357,13 @@ public final class CommentMgmtService {
      * @throws ServiceException service exception
      */
     public void removePageComment(final String commentId)
-            throws ServiceException {
+        throws ServiceException {
         final Transaction transaction = commentRepository.beginTransaction();
 
         try {
             final JSONObject comment = commentRepository.get(commentId);
             final String pageId = comment.getString(Comment.COMMENT_ON_ID);
+
             // Step 1: Remove comment
             commentRepository.remove(commentId);
             // Step 2: Update page comment count
@@ -359,7 +390,7 @@ public final class CommentMgmtService {
      * @throws ServiceException service exception
      */
     public void removeArticleComment(final String commentId)
-            throws ServiceException {
+        throws ServiceException {
         final Transaction transaction = commentRepository.beginTransaction();
 
         try {
@@ -394,11 +425,11 @@ public final class CommentMgmtService {
      * @throws RepositoryException repository exception
      */
     public void incPageCommentCount(final String pageId)
-            throws JSONException, RepositoryException {
+        throws JSONException, RepositoryException {
         final JSONObject page = pageRepository.get(pageId);
-        final JSONObject newPage =
-                         new JSONObject(page, JSONObject.getNames(page));
+        final JSONObject newPage = new JSONObject(page, JSONObject.getNames(page));
         final int commentCnt = page.getInt(Page.PAGE_COMMENT_COUNT);
+
         newPage.put(Page.PAGE_COMMENT_COUNT, commentCnt + 1);
         pageRepository.update(pageId, newPage);
     }
@@ -412,10 +443,11 @@ public final class CommentMgmtService {
      * @throws RepositoryException repository exception
      */
     private void decArticleCommentCount(final String articleId)
-            throws JSONException, RepositoryException {
+        throws JSONException, RepositoryException {
         final JSONObject article = articleRepository.get(articleId);
         final JSONObject newArticle = new JSONObject(article, JSONObject.getNames(article));
         final int commentCnt = article.getInt(Article.ARTICLE_COMMENT_COUNT);
+
         newArticle.put(Article.ARTICLE_COMMENT_COUNT, commentCnt - 1);
 
         articleRepository.update(articleId, newArticle);
@@ -429,78 +461,52 @@ public final class CommentMgmtService {
      * @throws RepositoryException repository exception
      */
     private void decPageCommentCount(final String pageId)
-            throws JSONException, RepositoryException {
+        throws JSONException, RepositoryException {
         final JSONObject page = pageRepository.get(pageId);
-        final JSONObject newPage =
-                         new JSONObject(page, JSONObject.getNames(page));
+        final JSONObject newPage = new JSONObject(page, JSONObject.getNames(page));
         final int commentCnt = page.getInt(Page.PAGE_COMMENT_COUNT);
+
         newPage.put(Page.PAGE_COMMENT_COUNT, commentCnt - 1);
         pageRepository.update(pageId, newPage);
     }
 
     /**
      * Sets commenter thumbnail URL for the specified comment.
+     * 
+     * <p>
+     * Try to set thumbnail URL using Gravatar service.
+     * </p>
      *
      * @param comment the specified comment
      * @throws Exception exception
      */
-    public static void setCommentThumbnailURL(final JSONObject comment)
-            throws Exception {
+    public static void setCommentThumbnailURL(final JSONObject comment) throws Exception {
         final String commentEmail = comment.getString(Comment.COMMENT_EMAIL);
-        String thumbnailURL = null;
 
-        // Try to set thumbnail URL using Gravatar service
         final String hashedEmail = MD5.hash(commentEmail.toLowerCase());
-        final int size = 60;
-        final URL gravatarURL =
-                  new URL("http://www.gravatar.com/avatar/" + hashedEmail + "?s="
-                          + size + "&r=G");
+        String thumbnailURL = "http://secure.gravatar.com/avatar/" + hashedEmail + "?s=60&d=" + Latkes.getStaticServePath()
+            + "/images/default-user-thumbnail.png";
+
+        final URL gravatarURL = new URL(thumbnailURL);
+
+        int statusCode = HttpServletResponse.SC_OK;
 
         try {
             final HTTPRequest request = new HTTPRequest();
+
             request.setURL(gravatarURL);
             final HTTPResponse response = urlFetchService.fetch(request);
-            final int statusCode = response.getResponseCode();
 
-            if (HttpServletResponse.SC_OK == statusCode) {
-                final List<HTTPHeader> headers = response.getHeaders();
-                boolean defaultFileLengthMatched = false;
-                for (final HTTPHeader httpHeader : headers) {
-                    if ("Content-Length".equalsIgnoreCase(httpHeader.getName())) {
-                        if (httpHeader.getValue().equals("2147")) {
-                            defaultFileLengthMatched = true;
-                        }
-                    }
-                }
-
-                if (!defaultFileLengthMatched) {
-                    thumbnailURL = "http://www.gravatar.com/avatar/"
-                                   + hashedEmail + "?s=" + size + "&r=G";
-                    comment.put(Comment.COMMENT_THUMBNAIL_URL, thumbnailURL);
-                    LOGGER.log(Level.FINEST, "Comment thumbnail[URL={0}]",
-                               thumbnailURL);
-
-                    return;
-                }
-            } else {
-                LOGGER.log(Level.WARNING,
-                           "Can not fetch thumbnail from Gravatar[commentEmail={0}, statusCode={1}]",
-                           new Object[]{commentEmail, statusCode});
-            }
+            statusCode = response.getResponseCode();
         } catch (final IOException e) {
-            LOGGER.warning(e.getMessage());
-            LOGGER.log(Level.WARNING,
-                       "Can not fetch thumbnail from Gravatar[commentEmail={0}]",
-                       commentEmail);
+            LOGGER.log(Level.WARNING, "Can not fetch thumbnail from Gravatar[commentEmail={0}]", commentEmail);
+        } finally {
+            if (HttpServletResponse.SC_OK != statusCode) {
+                thumbnailURL = Latkes.getStaticServePath() + "/images/" + DEFAULT_USER_THUMBNAIL;
+            }
         }
 
-        if (null == thumbnailURL) {
-            LOGGER.log(Level.WARNING,
-                       "Not supported yet for comment thumbnail for email[{0}]",
-                       commentEmail);
-            thumbnailURL = "/images/" + DEFAULT_USER_THUMBNAIL;
-            comment.put(Comment.COMMENT_THUMBNAIL_URL, thumbnailURL);
-        }
+        comment.put(Comment.COMMENT_THUMBNAIL_URL, thumbnailURL);
     }
 
     /**
@@ -515,8 +521,7 @@ public final class CommentMgmtService {
     /**
      * Private constructor.
      */
-    private CommentMgmtService() {
-    }
+    private CommentMgmtService() {}
 
     /**
      * Singleton holder.
@@ -529,13 +534,11 @@ public final class CommentMgmtService {
         /**
          * Singleton.
          */
-        private static final CommentMgmtService SINGLETON =
-                                                new CommentMgmtService();
+        private static final CommentMgmtService SINGLETON = new CommentMgmtService();
 
         /**
          * Private default constructor.
          */
-        private SingletonHolder() {
-        }
+        private SingletonHolder() {}
     }
 }

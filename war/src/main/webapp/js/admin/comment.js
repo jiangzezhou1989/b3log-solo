@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
  *
  * @author <a href="mailto:LLY219@gmail.com">Liyuan Li</a>
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @version 1.0.0.7, May 3, 2012
+ * @version 1.0.0.8, Feb 23, 2013
  */
 
 admin.comment = { 
@@ -97,9 +97,10 @@ admin.comment = {
      * 删除评论
      * @id 评论 id
      * @fromId 该评论来自文章/草稿/自定义页面
+     * @articleId 该评论对应的实体 id，可能是文章，也可能是自定义页面
      */
     del: function (id, fromId, articleId) {
-        var isDelete = confirm(Label.confirmRemoveLabel);
+        var isDelete = confirm(Label.confirmRemoveLabel + Label.commentLabel + "?");
         if (isDelete) {
             $("#loadMsg").text(Label.loadingLabel);
             var from = "article";

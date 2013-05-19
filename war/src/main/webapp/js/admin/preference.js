@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
  *
  * @author <a href="mailto:LLY219@gmail.com">Liyuan Li</a>
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @version 1.0.1.4, May 3, 2012
+ * @version 1.0.1.7, Mar 5, 2013
  */
 
 /* preference 相关操作 */
@@ -45,12 +45,6 @@ admin.preference = {
                 
                 var preference = result.preference;
                 
-                // 线上环境严禁使用 localhost, 默认将其设为 host
-                if (preference.blogHost.indexOf("localhost") > -1 && Label.miniPostfix === ".min") {
-                    preference.blogHost = window.location.host;
-                    $("#tipMsg").text(Label.resetBlogHostLabel);
-                }
-                
                 $("#metaKeywords").val(preference.metaKeywords),
                 $("#metaDescription").val(preference.metaDescription),
                 $("#blogTitle").val(preference.blogTitle),
@@ -61,7 +55,6 @@ admin.preference = {
                 $("#mostUsedTagDisplayCount").val(preference.mostUsedTagDisplayCount);
                 $("#articleListDisplayCount").val(preference.articleListDisplayCount);
                 $("#articleListPaginationWindowSize").val(preference.articleListPaginationWindowSize);
-                $("#blogHost").val(preference.blogHost);
                 $("#localeString").val(preference.localeString);
                 $("#timeZoneId").val(preference.timeZoneId);
                 $("#noticeBoard").val(preference.noticeBoard);
@@ -71,7 +64,6 @@ admin.preference = {
                 $("#randomArticlesDisplayCount").val(preference.randomArticlesDisplayCount);
                 $("#keyOfSolo").val(preference.keyOfSolo);
                 preference.enableArticleUpdateHint ? $("#enableArticleUpdateHint").attr("checked", "checked") : $("#enableArticleUpdateHint").removeAttr("checked");
-                        
                 preference.allowVisitDraftViaPermalink ? $("#allowVisitDraftViaPermalink").attr("checked", "checked") : $("allowVisitDraftViaPermalink").removeAttr("checked");
 
                 admin.preference.locale = preference.localeString;
@@ -82,16 +74,15 @@ admin.preference = {
                 var skins = eval('(' + preference.skins + ')');
                 var skinsHTML = "";
                 for (var i = 0; i < skins.length; i++) {
+                    var selectedClass = "";
                     if (skins[i].skinName === preference.skinName
                         && skins[i].skinDirName === preference.skinDirName ) {
-                        skinsHTML += "<div title='" + skins[i].skinDirName
-                        + "' class='left skinItem selected'><img class='skinPreview' src='skins/"
-                        + skins[i].skinDirName + "/preview.png'/><div>" + skins[i].skinName + "</div></div>"
-                    } else {
-                        skinsHTML += "<div title='" + skins[i].skinDirName
-                        + "' class='left skinItem'><img class='skinPreview' src='skins/"
-                        + skins[i].skinDirName + "/preview.png'/><div>" + skins[i].skinName + "</div></div>"
-                    }
+                        selectedClass += " selected";
+                    } 
+                    skinsHTML += "<div title='" + skins[i].skinDirName
+                        + "' class='left skinItem" + selectedClass + "'><img class='skinPreview' src='" 
+                        + latkeConfig.staticServePath + "/skins/" + skins[i].skinDirName 
+                        + "/preview.png'/><div>" + skins[i].skinName + "</div></div>";
                 }
                 $("#skinMain").append(skinsHTML + "<div class='clear'></div>");
 
@@ -115,8 +106,9 @@ admin.preference = {
                 $("#articleListDisplay").val(preference.articleListStyle);
                 // Editor Type
                 $("#editorType").val(preference.editorType);
-                // Feed output mode
+                // Feed output
                 $("#feedOutputMode").val(preference.feedOutputMode);
+                $("#feedOutputCnt").val(preference.feedOutputCnt);
                 // Commentable
                 preference.commentable ? $("#commentable").attr("checked", "checked") : $("commentable").removeAttr("checked");
                 
@@ -125,13 +117,60 @@ admin.preference = {
         });
     },
     
+    /* 
+     * @description 参数校验
+     */
+    validate: function () {
+        if (!/^\d+$/.test($("#mostUsedTagDisplayCount").val())) {
+            $("#tipMsg").text("[" + Label.paramSettingsLabel + " - " + Label.indexTagDisplayCntLabel + "] " + Label.nonNegativeIntegerOnlyLabel);
+            $("#mostUsedTagDisplayCount").focus();
+            return false;
+        } else if (!/^\d+$/.test($("#recentCommentDisplayCount").val())) {
+            $("#tipMsg").text("[" + Label.paramSettingsLabel + " - " + Label.indexRecentCommentDisplayCntLabel + "] " + Label.nonNegativeIntegerOnlyLabel);
+            $("#recentCommentDisplayCount").focus();
+            return false;
+        } else if (!/^\d+$/.test($("#mostCommentArticleDisplayCount").val())) {
+            $("#tipMsg").text("[" + Label.paramSettingsLabel + " - " + Label.indexMostCommentArticleDisplayCntLabel + "] " + Label.nonNegativeIntegerOnlyLabel);
+            $("#mostCommentArticleDisplayCount").focus();
+            return false;
+        } else if (!/^\d+$/.test($("#mostViewArticleDisplayCount").val())) {
+            $("#tipMsg").text("[" + Label.paramSettingsLabel + " - " + Label.indexMostViewArticleDisplayCntLabel + "] " + Label.nonNegativeIntegerOnlyLabel);
+            $("#mostViewArticleDisplayCount").focus();
+            return false;
+        } else if (!/^\d+$/.test($("#articleListDisplayCount").val())) {
+            $("#tipMsg").text("[" + Label.paramSettingsLabel + " - " + Label.pageSizeLabel + "] " + Label.nonNegativeIntegerOnlyLabel);
+            $("#articleListDisplayCount").focus();
+            return false;
+        } else if (!/^\d+$/.test($("#articleListPaginationWindowSize").val())) {
+            $("#tipMsg").text("[" + Label.paramSettingsLabel + " - " + Label.windowSizeLabel + "] " + Label.nonNegativeIntegerOnlyLabel);
+            $("#articleListPaginationWindowSize").focus();
+            return false;
+        } else if (!/^\d+$/.test($("#randomArticlesDisplayCount").val())) {
+            $("#tipMsg").text("[" + Label.paramSettingsLabel + " - " + Label.randomArticlesDisplayCntLabel + "] " + Label.nonNegativeIntegerOnlyLabel);
+            $("#randomArticlesDisplayCount").focus();
+            return false;
+        } else if (!/^\d+$/.test($("#relevantArticlesDisplayCount").val())) {
+            $("#tipMsg").text("[" + Label.paramSettingsLabel + " - " + Label.relevantArticlesDisplayCntLabel + "] " + Label.nonNegativeIntegerOnlyLabel);
+            $("#relevantArticlesDisplayCount").focus();
+            return false;
+        } else if (!/^\d+$/.test($("#externalRelevantArticlesDisplayCount").val())) {
+            $("#tipMsg").text("[" + Label.paramSettingsLabel + " - " + Label.externalRelevantArticlesDisplayCntLabel + "] " + Label.nonNegativeIntegerOnlyLabel);
+            $("#externalRelevantArticlesDisplayCount").focus();
+            return false;
+        }
+        return true;
+    },
+    
     /*
-     * 更新
+     * @description 更新
      */
     update: function () {
-        $("#loadMsg").text(Label.loadingLabel);
-        $("#tipMsg").text("");
+        if (!admin.preference.validate()) {
+            return;
+        }
 
+        $("#tipMsg").text("");
+        $("#loadMsg").text(Label.loadingLabel);
         var signs = [{
             "oId": 0,
             "signHTML": ""
@@ -159,7 +198,6 @@ admin.preference = {
                 "articleListDisplayCount": $("#articleListDisplayCount").val(),
                 "articleListPaginationWindowSize": $("#articleListPaginationWindowSize").val(),
                 "skinDirName": $("#skinMain").data("skinDirName"),
-                "blogHost": $("#blogHost").val(),
                 "localeString": $("#localeString").val(),
                 "timeZoneId": $("#timeZoneId").val(),
                 "noticeBoard": $("#noticeBoard").val(),
@@ -174,6 +212,7 @@ admin.preference = {
                 "articleListStyle": $("#articleListDisplay").val(),
                 "editorType": $("#editorType").val(),
                 "feedOutputMode": $("#feedOutputMode").val(),
+                "feedOutputCnt": $("#feedOutputCnt").val(),
                 "commentable": $("#commentable").prop("checked")
             }
         };

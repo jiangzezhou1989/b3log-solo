@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,17 +15,15 @@
  */
 package org.b3log.solo.repository.impl;
 
+
 import org.b3log.latke.Keys;
-import org.b3log.latke.repository.AbstractRepository;
-import org.b3log.latke.repository.FilterOperator;
-import org.b3log.latke.repository.Query;
+import org.b3log.latke.repository.*;
 import org.b3log.solo.model.Article;
-import org.b3log.latke.repository.RepositoryException;
-import org.b3log.latke.repository.SortDirection;
 import org.b3log.solo.model.ArchiveDate;
 import org.b3log.solo.repository.ArchiveDateArticleRepository;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 
 /**
  * Archive date-Article relation repository.
@@ -39,19 +37,14 @@ public final class ArchiveDateArticleRepositoryImpl extends AbstractRepository i
     /**
      * Singleton.
      */
-    private static final ArchiveDateArticleRepositoryImpl SINGLETON =
-            new ArchiveDateArticleRepositoryImpl(ArchiveDate.ARCHIVE_DATE + "_" + Article.ARTICLE);
+    private static final ArchiveDateArticleRepositoryImpl SINGLETON = new ArchiveDateArticleRepositoryImpl(
+        ArchiveDate.ARCHIVE_DATE + "_" + Article.ARTICLE);
 
     @Override
     public JSONObject getByArchiveDateId(final String archiveDateId, final int currentPageNum, final int pageSize)
-            throws RepositoryException {
-        final Query query = new Query().addFilter(ArchiveDate.ARCHIVE_DATE + "_" + Keys.OBJECT_ID,
-                                                  FilterOperator.EQUAL, archiveDateId).
-                addSort(Article.ARTICLE + "_" + Keys.OBJECT_ID,
-                        SortDirection.DESCENDING).
-                setCurrentPageNum(currentPageNum).
-                setPageSize(pageSize).
-                setPageCount(1);
+        throws RepositoryException {
+        final Query query = new Query().setFilter(new PropertyFilter(ArchiveDate.ARCHIVE_DATE + "_" + Keys.OBJECT_ID, FilterOperator.EQUAL, archiveDateId)).addSort(Article.ARTICLE + "_" + Keys.OBJECT_ID, SortDirection.DESCENDING).setCurrentPageNum(currentPageNum).setPageSize(pageSize).setPageCount(
+            1);
 
         return get(query);
     }
@@ -59,10 +52,12 @@ public final class ArchiveDateArticleRepositoryImpl extends AbstractRepository i
     @Override
     public JSONObject getByArticleId(final String articleId) throws RepositoryException {
         final Query query = new Query();
-        query.addFilter(Article.ARTICLE + "_" + Keys.OBJECT_ID, FilterOperator.EQUAL, articleId);
+
+        query.setFilter(new PropertyFilter(Article.ARTICLE + "_" + Keys.OBJECT_ID, FilterOperator.EQUAL, articleId));
 
         final JSONObject result = get(query);
         final JSONArray array = result.optJSONArray(Keys.RESULTS);
+
         if (0 == array.length()) {
             return null;
         }

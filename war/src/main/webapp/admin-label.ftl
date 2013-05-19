@@ -4,7 +4,7 @@
       "servePath": "${servePath}"
     };
     var Label = {
-        "skinDirName": "classic",
+        "skinDirName": "${skinDirName}",
         "editorType": "${editorType}",
         "userRole": "${userRole}",
         "PAGE_SIZE": "${articleListDisplayCount}",
@@ -14,7 +14,6 @@
         "miniPostfix": "${miniPostfix}",
         "reportIssueLabel": "please report this issue on https://github.com/b3log/b3log-solo/issues/new",
         "noDataLabel": "${noDataLabel}",
-        "resetBlogHostLabel": "${resetBlogHostLabel}",
         "linkDescriptionLabel": "${linkDescriptionLabel}",
         "addressInvalidLabel": "${addressInvalidLabel}",
         "selectLabel": "${selectLabel}",
@@ -54,9 +53,9 @@
         "versionLabel": "${versionLabel}",
         "commentNameLabel": "${commentNameLabel}",
         "commentEmailLabel": "${commentEmailLabel}",
+        "roleLabel": "${roleLabel}", 
         "administratorLabel": "${administratorLabel}",
         "duplicatedEmailLabel": "${duplicatedEmailLabel}",
-        "nameEmptyLabel": "${nameEmptyLabel}",
         "mailInvalidLabel": "${mailInvalidLabel}",
         "mailCannotEmptyLabel": "${mailCannotEmptyLabel}",
         "noSettingLabel": "${noSettingLabel}",
@@ -79,10 +78,12 @@
         "editorPostLabel": "${editorPostLabel}",
         "enableLabel": "${enableLabel}",
         "disableLabel": "${disableLabel}",
+        "settingLabel": "${settingLabel}",
         "linkEmptyLabel": "${linkEmptyLabel}",
         "openMethodLabel": "${openMethodLabel}",
         "typeLabel": "${typeLabel}",
         "markdownHelpLabel": "${markdownHelpLabel}",
+        "notFoundLabel": "${notFoundLabel}",
         "em00Label": "${em00Label}",
         "em01Label": "${em01Label}",
         "em02Label": "${em02Label}",
@@ -97,7 +98,23 @@
         "em11Label": "${em11Label}",
         "em12Label": "${em12Label}",
         "em13Label": "${em13Label}",
-        "em14Label": "${em14Label}"
+        "em14Label": "${em14Label}",
+        "paramSettingsLabel": "${paramSettingsLabel}",
+        "nonNegativeIntegerOnlyLabel": "${nonNegativeIntegerOnlyLabel}",
+        "indexTagDisplayCntLabel": "${indexTagDisplayCntLabel}",
+        "indexRecentCommentDisplayCntLabel": "${indexRecentCommentDisplayCntLabel}",
+        "indexMostCommentArticleDisplayCntLabel": "${indexMostCommentArticleDisplayCntLabel}",
+        "indexMostViewArticleDisplayCntLabel": "${indexMostViewArticleDisplayCntLabel}",
+        "pageSizeLabel": "${pageSizeLabel}",
+        "windowSizeLabel": "${windowSizeLabel}",
+        "randomArticlesDisplayCntLabel": "${randomArticlesDisplayCntLabel}",
+        "relevantArticlesDisplayCntLabel": "${relevantArticlesDisplayCntLabel}",
+        "externalRelevantArticlesDisplayCntLabel": "${externalRelevantArticlesDisplayCntLabel}",
+        "nameTooLongLabel": "${nameTooLongLabel}",
+        "navLabel": "${navLabel}",
+        "userLabel": "${userLabel}",
+        "changeRoleLabel": "${changeRoleLabel}",
+        "visitorUserLabel": "${visitorUserLabel}"
     };    
     
     admin.init();

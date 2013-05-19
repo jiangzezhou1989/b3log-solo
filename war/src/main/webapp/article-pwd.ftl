@@ -5,8 +5,9 @@
         <title>${articleViewPwdLabel}</title>
         <meta name="keywords" content="GAE 博客,GAE blog,b3log" />
         <meta name="description" content="An open source blog based on GAE Java,GAE Java 开源博客" />
+        <meta name="owner" content="B3log Team" />
         <meta name="author" content="B3log Team" />
-        <meta name="generator" content="B3log" />
+        <meta name="generator" content="B3log Solo" />
         <meta name="copyright" content="B3log" />
         <meta name="revised" content="B3log, ${year}" />
         <meta name="robots" content="noindex, follow" />
@@ -34,7 +35,7 @@
                         <#if msg??>
                         <div>${msg}</div>
                         </#if>
-                        <form method="POST" action="${staticServePath}/console/article-pwd">
+                        <form method="POST" action="${servePath}/console/article-pwd">
                             <label for="pwdTyped">访问密码：</label>
                             <input type="password" id="pwdTyped" name="pwdTyped" />
                             <input type="hidden" name="articleId" value="${articleId}" />
@@ -50,7 +51,7 @@
 
             <div class="footerWrapper">
                 <div class="footer">
-                    &copy; ${year} - <a href="http://${blogHost}">${blogTitle}</a><br/>
+                    &copy; ${year} - <a href="${servePath}">${blogTitle}</a><br/>
                     Powered by
                     <a href="http://b3log.org" target="_blank">
                         ${b3logLabel}&nbsp;
