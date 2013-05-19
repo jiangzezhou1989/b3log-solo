@@ -14,6 +14,7 @@ Without this configuration present, some functionality in the IDE may be limited
         <word>blogging</word>
         <word>captcha</word>
         <word>Captcha</word>
+        <word>Captchas</word>
         <word>cron</word>
         <word>datastore</word>
         <word>ftl</word>
@@ -36,6 +37,7 @@ Without this configuration present, some functionality in the IDE may be limited
         <word>sitemap</word>
         <word>struct</word>
         <word>structs</word>
+        <word>Swithches</word>
         <word>Upgrader</word>
         <word>Upgraders</word>
     </spellchecker-wordlist>

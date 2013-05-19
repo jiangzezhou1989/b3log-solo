@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
  * @fileoverview util and every page should be used.
  *
  * @author <a href="mailto:LLY219@gmail.com">Liyuan Li</a>
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @version 1.0.2.0, May 16, 2012
+ * @version 1.0.2.4, Nov 13, 2012
  */
 
 /**
@@ -44,7 +43,7 @@ var Util = {
         if ($.browser.msie) {
             // kill IE6 and IE7
             if ($.browser.version === "6.0" || $.browser.version === "7.0") {
-                window.location = "/kill-browser.html";
+                window.location = latkeConfig.servePath + "/kill-browser.html";
                 return;
             }
             
@@ -53,7 +52,7 @@ var Util = {
                 var path = external.twGetRunPath();
                 if(path && path.toLowerCase().indexOf("360se") > -1 && 
                     window.location.href.indexOf("admin-index") > -1) {
-                    window.location = "/kill-browser.html";
+                    window.location = latkeConfig.servePath + "/kill-browser.html";
                     return; 
                 }
             }
@@ -164,17 +163,11 @@ var Util = {
      * @description topbar 清除缓存按钮事件
      */
     clearCache: function (all) {
-        var data = {};
+        var data = '';
         if (all === "all") {
-            data = {
-                "all": "all",
-                "URI": ""
-            };
+            data = '{"all": "all", "URI": ""}';
         } else {
-            data = {
-                "all": "",
-                "URI": window.location.pathname
-            };
+            data = '{"all": "all", "URI": "' + window.location.pathname + '"}';
         }
         
         $.ajax({
@@ -182,7 +175,7 @@ var Util = {
             url: latkeConfig.servePath + "/clear-cache.do",
             cache: false,
             contentType: "application/json",
-            data: JSON.stringify(data),
+            data: data,
             success: function(result){
                 window.location.reload();
             }
@@ -240,23 +233,27 @@ var Util = {
      * @returns {String} 格式化后的时间
      */
     toDate: function (time, format) {
-        var dateTime = new Date(time),
-        formatDate;
-        var year = dateTime.getFullYear(),
-        month = dateTime.getMonth() + 1,
-        date = dateTime.getDate(),
-        hour = dateTime.getHours() + 1,
-        minute = dateTime.getMinutes() + 1;
-        
-        switch (format) {
-            case "yy-MM-dd HH:mm":
-                formatDate = year.toString().substr(2) + "-" + month + "-" + date + " " + hour + ":" + minute;
-                break;
-            default:
-                break;
-        }
-        
-        return formatDate;
+        var dateTime = new Date(time);
+        var o = { 
+            "M+" : dateTime.getMonth()+1, //month 
+            "d+" : dateTime.getDate(), //day 
+            "H+" : dateTime.getHours(), //hour 
+            "m+" : dateTime.getMinutes(), //minute 
+            "s+" : dateTime.getSeconds(), //second 
+            "q+" : Math.floor((dateTime.getMonth()+3)/3), //quarter 
+            "S" : dateTime.getMilliseconds() //millisecond 
+        } 
+
+        if(/(y+)/.test(format)) { 
+            format = format.replace(RegExp.$1, (dateTime.getFullYear()+"").substr(4 - RegExp.$1.length)); 
+        } 
+
+        for(var k in o) { 
+            if(new RegExp("("+ k +")").test(format)) { 
+                format = format.replace(RegExp.$1, RegExp.$1.length==1 ? o[k] : ("00"+ o[k]).substr((""+ o[k]).length)); 
+            } 
+        } 
+        return format; 
     }
 };
 
@@ -277,7 +274,7 @@ if (!Cookie) {
             for(var i=0;i < ca.length;i++) {
                 var c = ca[i];
                 while (c.charAt(0)==' ') c = c.substring(1,c.length);
-                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+                if (c.indexOf(nameEQ) == 0) return decodeURIComponent(c.substring(nameEQ.length,c.length));
             }
             return "";
         },
@@ -293,7 +290,7 @@ if (!Cookie) {
         /**
          * @description 创建 Cookie
          * @param {String} name 每条 Cookie 唯一的 key
-         * @param {String} value 每条 Cookie 对应的值
+         * @param {String} value 每条 Cookie 对应的值，将被 UTF-8 编码
          * @param {Int} days Cookie 保存时间
          */
         createCookie: function (name, value, days) {
@@ -303,7 +300,7 @@ if (!Cookie) {
                 date.setTime(date.getTime()+(days*24*60*60*1000));
                 expires = "; expires="+date.toGMTString();
             }
-            document.cookie = name+"="+value+expires+"; path=/";
+            document.cookie = name+"="+encodeURIComponent(value)+expires+"; path=/";
         }
     };
 }

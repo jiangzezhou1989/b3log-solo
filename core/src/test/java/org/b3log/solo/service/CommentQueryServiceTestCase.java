@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import org.testng.annotations.Test;
  * {@link CommentQueryService} test case.
  *
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @version 1.0.0.0, Feb 2, 2012
+ * @version 1.0.0.1, Sep 11, 2012
  */
 @Test(suiteName = "service")
 public class CommentQueryServiceTestCase extends AbstractTestCase {

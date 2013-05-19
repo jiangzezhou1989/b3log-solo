@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+    Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -18,13 +18,30 @@
 -->
 <!--
     Description: B3log Solo web deployment descriptor.
-    Version: 1.0.4.8, May 18, 2012
+    Version: 1.0.4.10, Jan 15, 2013
     Author: Liang Ding
 -->
 <web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
     <listener>
         <listener-class>org.b3log.solo.SoloServletListener</listener-class>
     </listener>
+    
+    <filter>
+        <filter-name>EncodingFilter</filter-name>
+        <filter-class>org.b3log.latke.servlet.filter.EncodingFilter</filter-class>
+        <init-param>
+            <param-name>requestEncoding</param-name>
+            <param-value>UTF-8</param-value>
+        </init-param>
+        <init-param>
+            <param-name>responseEncoding</param-name>
+            <param-value>UTF-8</param-value>
+        </init-param>
+    </filter>
+    <filter-mapping>
+        <filter-name>EncodingFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
     
     <filter>
         <filter-name>AuthFilter</filter-name>
@@ -82,20 +99,19 @@
     <servlet>
         <servlet-name>HTTPRequestDispatcher</servlet-name>
         <servlet-class>org.b3log.latke.servlet.HTTPRequestDispatcher</servlet-class>
+
+        <!-- Latke Request Processors Scan -->
+        <!-- See https://github.com/b3log/b3log-latke/issues/17 for more details -->
+        <init-param>
+            <param-name>scanPath</param-name>
+            <param-value>org.b3log</param-value>
+        </init-param>
+        
         <load-on-startup>2</load-on-startup>
     </servlet>
     <servlet-mapping>
         <servlet-name>HTTPRequestDispatcher</servlet-name>
         <url-pattern>/*</url-pattern>
-    </servlet-mapping>
-    
-    <servlet>
-        <servlet-name>AddArticleCommentFromSymphonyAction</servlet-name>
-        <servlet-class>org.b3log.solo.action.impl.AddArticleCommentFromSymphonyAction</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>AddArticleCommentFromSymphonyAction</servlet-name>
-        <url-pattern>/add-article-from-symphony-comment.do</url-pattern>
     </servlet-mapping>
     
     <!-- Error Pages -->

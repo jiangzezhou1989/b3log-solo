@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
 
-    Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+    Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@
     Description: Web deployment descriptor on GAE. See
                  http://code.google.com/intl/en/appengine/docs/java/config/appconfig.html
                  for more details.
-    Version: 1.0.3.5, May 18, 2012
+    Version: 1.0.4.2, Apr 26, 2013
     Author: Liang Ding
 -->
 <appengine-web-app xmlns="http://appengine.google.com/ns/1.0">
     <application>solo-demo</application>
-    <version>045</version>
+    <version>060</version>
     
     <sessions-enabled>true</sessions-enabled>
     
@@ -41,7 +41,6 @@
         <include path="/favicon.ico" />
         <include path="/favicon.png" />
         <include path="/robots.txt" />
-        <include path="/error/*.html" />
         
         <include path="/js/**.js" />
         <include path="/js/**/*.js" />
@@ -97,6 +96,10 @@
         <include path="/plugins/**/*.html" />
         <include path="/plugins/**.htm" />
         <include path="/plugins/**/*.htm" />
+        
+        <include path="/CHANGE_LOGS.html" />
+        <include path="/README.txt" />
+        <include path="/LICENSE.txt" />
         
     </static-files>
     

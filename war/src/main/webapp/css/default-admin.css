@@ -1,13 +1,29 @@
-/**
- * admin style
+/*
+ * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
  *
- * @author <a href="mailto:LLY219@gmail.com">Liyuan Li</a>
- * @version 1.0.3.7, May 23, 2012
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
+
+/**
+* admin style
+*
+* @author <a href="mailto:LLY219@gmail.com">Liyuan Li</a>
+* @version 1.0.4.1, Dec 24, 2012
 */
 
 /* start resset */
 body, input, textarea {
-    font-family: sans-serif,\5fae\8f6f\96c5\9ed1;
+    font-family: 'sans-serif','\5fae\8f6f\96c5\9ed1';
 }
 html, body {
     height: 100%;
@@ -63,22 +79,29 @@ button.selected {
 #tabsPanel>div {
     padding-bottom: 36px;
 }
-#tipMsg, #loadMsg {
-    background-color: #E5E7EB;
-    border-radius: 3px;
+
+.tip {
     font-weight: bold;
-    left: 48%;
     margin: 0 auto;
     overflow: hidden;
     padding: 2px 0;
     position: fixed;
     text-align: center;
-    top: 3px;
+    top: 5px;
+    width: 100%;
     z-index: 2;
 }
-#tipMsg {
+
+.tip-msg {
     top: 33px;
 }
+
+#tipMsg, #loadMsg { 
+    background-color: #E5E7EB;
+    border-radius: 3px;
+    padding: 2px 0;
+}
+
 .footer {
     bottom: 12px;
     position: absolute;
@@ -89,12 +112,12 @@ button.selected {
 
 /* start top-nav */
 #top {
-    background-image: linear-gradient(top,#666666,#7F7F7F);
-    background-image: -moz-linear-gradient(top,#666666,#7F7F7F);
-    background-image: -ms-linear-gradient(top,#666666,#7F7F7F);
-    background-image: -o-linear-gradient(top,#666666,#7F7F7F);
-    background-image: -webkit-gradient(linear,left top,left bottom,from(#666666),to(#7F7F7F));
-    filter:  progid:DXImageTransform.Microsoft.gradient(startColorstr='#666666', endColorstr='#7F7F7F');
+    background-color: #666;
+    background-image: linear-gradient(#666666,#7F7F7F);
+    background-image: -ms-linear-gradient(#666666,#7F7F7F);
+    background-image: -o-linear-gradient(#666666,#7F7F7F);
+    background-image: -webkit-linear-gradient(#666666,#7F7F7F);
+    filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorstr='#666666', endColorstr='#7F7F7F');
 }
 
 #top a, #top span span {
@@ -258,13 +281,12 @@ button.selected {
     min-height: 160px;
 }
 .module-header {
-    background-color: #f1f1f1;
-    background-image: linear-gradient(top,#f9f9f9,#ececec);
-    background-image: -moz-linear-gradient(top,#f9f9f9,#ececec);
-    background-image: -ms-linear-gradient(top,#f9f9f9,#ececec);
-    background-image: -o-linear-gradient(top,#f9f9f9,#ececec);
-    background-image: -webkit-gradient(linear,left top,left bottom,from(#f9f9f9),to(#ececec));
-    filter:  progid:DXImageTransform.Microsoft.gradient(startColorstr='#f9f9f9', endColorstr='#ececec');
+    background-color: #f9f9f9;
+    background-image: linear-gradient(#f9f9f9,#ececec);
+    background-image: -ms-linear-gradient(#f9f9f9,#ececec);
+    background-image: -o-linear-gradient(#f9f9f9,#ececec);
+    background-image: -webkit-linear-gradient(#f9f9f9,#ececec);
+    filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorstr='#f9f9f9', endColorstr='#ececec');
     border-bottom-color: #DFDFDF;
     box-shadow: 0 1px 0 #FFFFFF;
     text-shadow: 0 1px 0 #FFFFFF;
@@ -297,11 +319,12 @@ button.selected {
 
 /* start article */
 .markdown-preivew {
-    background-image: -moz-linear-gradient(top,#FFFFFF,#F3F3F3);
-    background-image: -ms-linear-gradient(top,#FFFFFF,#F3F3F3);
-    background-image: -o-linear-gradient(top,#FFFFFF,#F3F3F3);
-    background-image: -webkit-gradient(linear,left top,left bottom,from(#FFFFFF),to(#F3F3F3));
-    filter:  progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFFFFF', endColorstr='#F3F3F3');
+    background-color: #fff;
+    background-image: linear-gradient(#FFFFFF,#F3F3F3);
+    background-image: -ms-linear-gradient(#FFFFFF,#F3F3F3);
+    background-image: -o-linear-gradient(#FFFFFF,#F3F3F3);
+    background-image: -webkit-linear-gradient(#FFFFFF,#F3F3F3);
+    filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0, startColorstr='#FFFFFF', endColorstr='#F3F3F3');
     border-color: #C0C0C0 #D9D9D9 #D9D9D9;
     border-style: solid;
     border-width: 1px;
@@ -483,9 +506,9 @@ button#submitArticle {
     width: 100%;
     z-index: 90;
 }
+
 .dialog-panel {
     display: none;
-    moz-user-select: none;
     position: absolute;
     z-index: 100;
 }
@@ -505,9 +528,6 @@ button#submitArticle {
     border-width: 1px 1px 0;
     cursor: move;
     height: 34px;
-}
-.dialog-header-middle {
-    float: left;
 }
 
 .dialog-close-icon {

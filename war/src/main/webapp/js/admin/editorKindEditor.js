@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,11 @@
  */
 /**
  * @fileoverview KindEditor
+ * @description 修改点：plugins/image/image.js 注释 173-176
+ *                     plugins/media/media.js 注释 26 & 28
  *
  * @author <a href="mailto:LLY219@gmail.com">Liyuan Li</a>
- * @version 1.0.0.1, May 2, 2012
+ * @version 1.0.0.2, Jun 19, 2012
  */
 admin.editors.KindEditor = {
     /*
@@ -39,7 +41,7 @@ admin.editors.KindEditor = {
                     langType : language,
                     resizeType: 0, 
                     items: ["bold", "italic", "underline", "strikethrough", "|", "undo", "redo", "|", 
-                    "insertunorderedlist", "insertorderedlist",
+                    "insertunorderedlist", "insertorderedlist", "|", "source"
                     ]
                 });
             } catch (e) {

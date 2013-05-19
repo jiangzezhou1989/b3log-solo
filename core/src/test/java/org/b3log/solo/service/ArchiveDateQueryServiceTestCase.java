@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2010, 2011, 2012, B3log Team
+ * Copyright (c) 2009, 2010, 2011, 2012, 2013, B3log Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package org.b3log.solo.service;
 
 import java.util.Date;
 import java.util.List;
+import org.apache.commons.lang.time.DateFormatUtils;
+import org.apache.commons.lang.time.DateUtils;
 import org.b3log.latke.model.User;
 import org.b3log.solo.AbstractTestCase;
 import org.b3log.solo.model.ArchiveDate;
@@ -28,7 +30,7 @@ import org.testng.annotations.Test;
  * {@link ArchiveDateQueryService} test case.
  *
  * @author <a href="mailto:DL88250@gmail.com">Liang Ding</a>
- * @version 1.0.0.0, Feb 7, 2012
+ * @version 1.0.0.1, Sep 11, 2012
  */
 public class ArchiveDateQueryServiceTestCase extends AbstractTestCase {
 
@@ -76,10 +78,10 @@ public class ArchiveDateQueryServiceTestCase extends AbstractTestCase {
     public void getByArchiveDateString() throws Exception {
         final ArchiveDateQueryService archiveDateQueryService = ArchiveDateQueryService.getInstance();
 
-        final String archiveDateString = ArchiveDate.DATE_FORMAT.format(new Date());
+        final String archiveDateString = DateFormatUtils.format(new Date(), "yyyy/MM");
         final JSONObject result = archiveDateQueryService.getByArchiveDateString(archiveDateString);
         Assert.assertNotNull(result);
         Assert.assertEquals(result.getJSONObject(ArchiveDate.ARCHIVE_DATE).getLong(ArchiveDate.ARCHIVE_TIME), 
-                            ArchiveDate.DATE_FORMAT.parse(archiveDateString).getTime());
+                            DateUtils.parseDate(archiveDateString, new String[] {"yyyy/MM"}).getTime());
     }
 }
